@@ -36,6 +36,7 @@ func main() {
       "DATA_NAME": "Data.Name",
       "DATA_HOST": "Data.Host",
       "DATA_PORT": "Data.Port",
+      "SERVER_ADDRESS": "Server.Address",
     })
 
   // read in configuration from all sources

@@ -1,7 +1,6 @@
 package settings
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,16 +10,20 @@ import (
 
 func Read(opts ReadOptions, s *interface{}) error {
 	// read in base path (should be the base config file)
-	if err := readBaseSettings(opts.BasePath); err != nil {
+	if err := readBaseSettings(opts.BasePath, s); err != nil {
 		log.Fatal(err)
 	}
+
 	// apply default mapped values
-	defOptions, err := readDefaultsMap(opts.BasePath)
-	if err != nil {
+	// iterate through the options.DefaultsMap and
+	// apply the values that match the field names in the
+	// inbound pointer argument that is an interface{} with
+	// variable name "s"
+	if err := applyDefaultsMap(opts.DefaultsMap, s); err != nil {
 		log.Fatal(err)
 	}
-	opts.SetDefaultsMap(defOptions, true)
-	// apply environment override files
+
+	// read any applicable environment override files
 
 	// apply environment variables
 
@@ -29,7 +32,7 @@ func Read(opts ReadOptions, s *interface{}) error {
 	return nil
 }
 
-func readBaseSettings(path string) error {
+func readBaseSettings(path string, s *interface{}) error {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			// base path doesn't exist
@@ -40,22 +43,21 @@ func readBaseSettings(path string) error {
 		return err
 	}
 
-	Options().SetBasePath(path)
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		// unable to read the file
+		return err
+	}
+
+	// determine if JSON or YAML
+	if err := yaml.Unmarshal(b, s); err != nil {
+		// unable to unmarshal
+		return err
+	}
 
 	return nil
 }
 
-func readDefaultsMap(path string) (map[string]interface{}, error) {
-	yamlConfig, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c := make(map[string]interface{})
-	err = yaml.Unmarshal(yamlConfig, &c)
-	if err != nil {
-		return nil, fmt.Errorf("in file %q: %v", path, err)
-	}
-
-	return c, nil
+func applyDefaultsMap(d map[string]interface{}, s *interface{}) error {
+	return nil
 }
