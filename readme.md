@@ -1,6 +1,6 @@
 # 12-Factor Compliant Application Configuration
 
-```go
+```got
 package main
 
 import "go.jtlabs.io/settings"
