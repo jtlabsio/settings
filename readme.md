@@ -13,17 +13,20 @@ type config struct {
   } `json:"data"`
   Logging struct {
     Level string `json:level`
-  }
+  } `json:"logging"`
   Server struct {
     Address string `json:"address"`
-  }
+  } `json:"server"`
 }
 
 func main() {
   var c config
   options := settings.Options().
     SetBasePath("./defaults.yaml").
-    SetEnvironmentSearchPaths("./", "./config", "./settings").
+    SetSearchPaths("./", "./config", "./settings").
+    SetDefaultsMap(map[string]interface{}{
+      "Server.Address": ":3080"
+    }).
     SetArgsMap(map[string]string{
       "--data-name": "Data.Name",
       "--data-host": "Data.Host",

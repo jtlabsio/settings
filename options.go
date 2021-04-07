@@ -1,14 +1,112 @@
 package settings
 
+// ReadOptions define additional optional instructions for
+// the Settings package when reading and compiling layers of
+// configuration settings from various sources
 type ReadOptions struct {
-	BasePath string
+	ArgsMap     map[string]string
+	BasePath    string
+	DefaultsMap map[string]interface{}
+	SearchPaths []string
+	VarsMap     map[string]string
 }
 
+// Options returns an empty ReadOptions for use with the
+// Settings package
 func Options() ReadOptions {
 	return ReadOptions{}
 }
 
+// SetArgsMap will either rewrite or, by default, augment the map
+// that defines which configuration keys are related to the specified
+// command line arguments
+func (ro ReadOptions) SetArgsMap(argsMap map[string]string, rewrite ...bool) ReadOptions {
+	// ensure it's not empty
+	if ro.ArgsMap == nil {
+		ro.ArgsMap = map[string]string{}
+	}
+
+	// add to the map when requested (or by default)
+	if len(rewrite) == 0 || !rewrite[0] {
+		populateMap(&ro.ArgsMap, argsMap)
+
+		return ro
+	}
+
+	// rewrite the map entirely
+	ro.ArgsMap = argsMap
+
+	return ro
+}
+
+// SetBasePath can be used to define the path to the base settings
+// file which is the first element loaded when the Settings package
+// begins reading configuration
 func (ro ReadOptions) SetBasePath(path string) ReadOptions {
 	ro.BasePath = path
 	return ro
+}
+
+// SetDefaultsMap can be used to define default values for config
+// elements in the event that the value is not provided in one
+// of the layered mechanisms used to read settings
+func (ro ReadOptions) SetDefaultsMap(defMap map[string]interface{}, rewrite ...bool) ReadOptions {
+	if ro.DefaultsMap == nil {
+		ro.DefaultsMap = map[string]interface{}{}
+	}
+
+	// add to the map when requested (or by default)
+	if len(rewrite) == 0 || !rewrite[0] {
+		for k, v := range defMap {
+			ro.DefaultsMap[k] = v
+		}
+
+		return ro
+	}
+
+	// rewrite the map entirely
+	ro.DefaultsMap = defMap
+
+	return ro
+}
+
+// SetSearchPaths can be used to instruct the Settings package on
+// where it might find additional configuration files for use when
+// loading additional layers of configuration
+func (ro ReadOptions) SetSearchPaths(paths ...string) ReadOptions {
+	if len(ro.SearchPaths) == 0 {
+		ro.SearchPaths = []string{}
+	}
+
+	ro.SearchPaths = append(ro.SearchPaths, paths...)
+
+	return ro
+}
+
+// SetVarsMap will either rewrite or, by default, augment the map
+// that associates environment variables to various configuration keys
+// specified in the base
+func (ro ReadOptions) SetVarsMap(varsMap map[string]string, rewrite ...bool) ReadOptions {
+	// ensure it's not empty
+	if ro.VarsMap == nil {
+		ro.VarsMap = map[string]string{}
+	}
+
+	// add to the map when requested (or by default)
+	if len(rewrite) == 0 || !rewrite[0] {
+		populateMap(&ro.VarsMap, varsMap)
+
+		return ro
+	}
+
+	// rewrite the map entirely
+	ro.VarsMap = varsMap
+
+	return ro
+}
+
+func populateMap(tm *map[string]string, fm map[string]string) {
+	for k, v := range fm {
+		(*tm)[k] = v
+	}
 }
