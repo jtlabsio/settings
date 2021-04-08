@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -59,5 +60,17 @@ func readBaseSettings(path string, s *interface{}) error {
 }
 
 func applyDefaultsMap(d map[string]interface{}, s *interface{}) error {
-	return nil
+	// only iterate if d contains values
+	if len(d) != 0 {
+		// create a map to hold the options and assign
+		// to the passed in empty interface, making it a map
+		map1 := map[string]interface{}{}
+		for k, v := range d {
+			map1[k] = v
+		}
+		*s = map1
+		return nil
+	}
+
+	return fmt.Errorf("empty map %q", d)
 }
