@@ -7,9 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 
 	"gopkg.in/yaml.v2"
 )
+
+var dotRE = regexp.MustCompile(`\.`)
 
 type settings struct {
 	baseSettings     []byte
@@ -18,6 +21,14 @@ type settings struct {
 	out              interface{}
 }
 
+// Read compiles configuration from various sources and
+// iteratively builds up the out object with the values
+// that are read successively from the following sources:
+// 1. base settings file
+// 2. defaults as configured in options (*diverges from github.com/brozeph/settings-lib)
+// 3. subsequent override settings files
+// 4. command line arguments
+// 5. environment variables
 func Read(opts ReadOptions, out interface{}) error {
 	s := settings{
 		baseSettings:     []byte{},
@@ -56,6 +67,42 @@ func Read(opts ReadOptions, out interface{}) error {
 }
 
 func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
+	// only apply defaults where applicable
+	if len(d) == 0 {
+		return nil
+	}
+
+	// iterate the defaults and apply them (as appropriate)
+	for fieldName, defaultValue := range d {
+		// ensure the field exists in the out object
+		if t, ok := s.fieldTypeMap[fieldName]; ok {
+			// we found a match... ensure the type matches
+			if t != reflect.ValueOf(defaultValue).Kind() {
+				// type mismatch error
+				return fmt.Errorf(
+					"type mismatch for field %s: expected %v and default value is %v",
+					fieldName,
+					t,
+					reflect.ValueOf(defaultValue).Kind())
+			}
+
+			// find the field within the out struct and set it (if we can)
+			v := s.findField(fieldName)
+			if v.CanSet() {
+				dv := reflect.ValueOf(defaultValue)
+				v.Set(dv)
+				continue
+			}
+
+			// unable to set the value
+			// TODO: should we error?
+			continue
+		}
+
+		// default field is not in the out struct
+		// TODO: should we error?
+	}
+
 	return nil
 }
 
@@ -94,6 +141,33 @@ func (s *settings) determineFileType(path string) error {
 	}
 
 	return nil
+}
+
+func (s *settings) findField(fieldPath string) reflect.Value {
+	if fieldPath == "" {
+		return reflect.Value{}
+	}
+
+	// create an array to iterate for the field hiearchy
+	deepFields := dotRE.Split(fieldPath, -1)
+	if len(deepFields) == 0 {
+		deepFields = []string{fieldPath}
+	}
+
+	// find the value for the doc (which is the config)
+	v := reflect.ValueOf(s.out)
+
+	// iterate through each value until we get to the correct sub field
+	for _, sf := range deepFields {
+		// ensure we are working with the underlying value
+		for v.Type().Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+
+		v = v.FieldByName(sf)
+	}
+
+	return v
 }
 
 func (s *settings) iterateFields(parentPrefix string, field reflect.StructField) {

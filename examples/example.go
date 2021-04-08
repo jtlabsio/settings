@@ -30,6 +30,7 @@ func main() {
 		SetSearchPaths("./", "./config", "./settings", "./examples").
 		SetDefaultsMap(map[string]interface{}{
 			"Server.Address": ":8080",
+			"Blah.Blah":      1234,
 		}).
 		SetArgsMap(map[string]string{
 			"--data-name": "Data.Name",
