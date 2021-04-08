@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"go.jtlabs.io/settings"
@@ -8,25 +9,27 @@ import (
 
 type config struct {
 	Data struct {
-		Name string `json:"name"`
+		Name string `json:"name" yaml:"name"`
 		Host string `json:"host"`
 		Port int    `json:"port"`
-	} `json:"data"`
+	} `json:"data" yaml:"data"`
 	Logging struct {
 		Level string `json:"level"`
 	} `json:"logging"`
+	Name   string `json:"name"`
 	Server struct {
 		Address string `json:"address"`
 	} `json:"server"`
+	Version string `json:"version"`
 }
 
 func main() {
 	var c config
 	options := settings.Options().
-		SetBasePath("./defaults.yaml").
-		SetSearchPaths("./", "./config", "./settings").
+		SetBasePath("./examples/defaults.yaml").
+		SetSearchPaths("./", "./config", "./settings", "./examples").
 		SetDefaultsMap(map[string]interface{}{
-			"Server.Address": ":3080",
+			"Server.Address": ":8080",
 		}).
 		SetArgsMap(map[string]string{
 			"--data-name": "Data.Name",
@@ -44,4 +47,6 @@ func main() {
 	if err := settings.Read(options, &c); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(c)
 }

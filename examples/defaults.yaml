@@ -1,0 +1,10 @@
+name: "pinapple"
+version: "1.0"
+data:
+  name: example-db
+  host: localhost
+  port: 27017
+logging:
+  level: trace
+server:
+  address: "0.0.0.0:3080"
