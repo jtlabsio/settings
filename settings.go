@@ -65,6 +65,9 @@ func Gather(opts ReadOptions, out interface{}) error {
 	}
 
 	// read any applicable environment override files
+	if err := s.searchForEnvOverrides(opts.VarsFileOverride, opts.SearchPaths); err != nil {
+		return err
+	}
 
 	// apply command line arguments
 
@@ -199,24 +202,6 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 	}
 }
 
-func (s *settings) iterateMap(m map[string]interface{}) {
-	if m == nil {
-		return
-	}
-
-	for f, v := range m {
-		fmt.Printf("field %s: %v\n", f, v)
-
-		if reflect.TypeOf(v).Kind() == reflect.Map {
-			for sf, sv := range v.(map[interface{}]interface{}) {
-				fmt.Printf("%v: %v", sf, sv)
-			}
-
-			// s.iterateMap(v.(map[string]interface{}))
-		}
-	}
-}
-
 func (s *settings) readBaseSettings(path string) error {
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -298,10 +283,41 @@ func (s *settings) searchForArgOverrides(args []string) error {
 
 		// we found a path...
 		if path != "" {
-			fmt.Printf("path found with command line arg (%s): %s\n", a, path)
 			if err := s.readOverrideFile(path); err != nil {
 				return err
 			}
+		}
+	}
+
+	return nil
+}
+
+func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) error {
+	if len(vars) == 0 {
+		return nil
+	}
+
+	if len(searchPaths) == 0 {
+		return nil
+	}
+
+	for _, v := range vars {
+		envName := os.Getenv(v)
+
+		// we found a path...
+		if envName != "" {
+			fmt.Printf("path found with environment var (%s): %s\n", v, envName)
+
+			// now iterate search paths
+			for _, prefix := range searchPaths {
+				//sp := fmt.Sprintf("", prefix, envName)
+			}
+
+			/*
+				if err := s.readOverrideFile(path); err != nil {
+					return err
+				}
+			*/
 		}
 	}
 

@@ -5,6 +5,6 @@ data:
   host: localhost
   port: 27017
 logging:
-  level: trace
+  level: info
 server:
   address: "0.0.0.0:3080"

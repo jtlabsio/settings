@@ -37,6 +37,7 @@ func main() {
 			"--data-host": "Data.Host",
 			"--data-port": "Data.Port",
 		}).
+		SetVarsFileOverride("GO_ENV").
 		SetVarsMap(map[string]string{
 			"DATA_NAME":      "Data.Name",
 			"DATA_HOST":      "Data.Host",
