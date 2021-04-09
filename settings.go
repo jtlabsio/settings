@@ -2,6 +2,7 @@ package settings
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -95,12 +96,11 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 			}
 
 			// unable to set the value
-			// TODO: should we error?
-			continue
+			return SettingsFieldSetError(fieldName, t)
 		}
 
 		// default field is not in the out struct
-		// TODO: should we error?
+		return SettingsFieldDoesNotExist("DefaultsMap", fieldName)
 	}
 
 	return nil
@@ -117,7 +117,7 @@ func (s *settings) determineFieldTypes() error {
 	// the target for settings must be a struct of some sort
 	if ct.Kind() != reflect.Struct {
 		// target is not suitable to populate
-		return fmt.Errorf("unable to read settings into unsupported type (%v)", ct.Kind())
+		return SettingsTypeDiscoveryError(ct.Kind())
 	}
 
 	fields := ct.NumField()
@@ -137,7 +137,7 @@ func (s *settings) determineFileType(path string) error {
 	case ".json":
 		s.baseSettingsType = "json"
 	default:
-		return fmt.Errorf("unsupported file type for base settings: %s", path)
+		return SettingsFileTypeError(path, ext)
 	}
 
 	return nil
@@ -194,19 +194,19 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 
 func (s *settings) readBaseSettings(path string) error {
 	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			// base path doesn't exist
 			return err
 		}
 
 		// unable to stat the file for other reasons...
-		return err
+		return SettingsFileReadError(path, err.Error())
 	}
 
 	bs, err := ioutil.ReadFile(path)
 	if err != nil {
 		// unable to read the file
-		return err
+		return SettingsFileReadError(path, err.Error())
 	}
 
 	s.baseSettings = bs
@@ -220,7 +220,7 @@ func (s *settings) readBaseSettings(path string) error {
 	if s.baseSettingsType == "yaml" {
 		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
 			// unable to unmarshal as YAML
-			return err
+			return SettingsFileParseError(path, err.Error())
 		}
 
 		return nil
@@ -229,7 +229,7 @@ func (s *settings) readBaseSettings(path string) error {
 	// unmarshal base JSON
 	if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
 		// unable to unmarshal as JSON
-		return err
+		return SettingsFileParseError(path, err.Error())
 	}
 
 	return nil
