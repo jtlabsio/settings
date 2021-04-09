@@ -19,10 +19,9 @@ var (
 )
 
 type settings struct {
-	baseSettings     []byte
-	baseSettingsType string
-	fieldTypeMap     map[string]reflect.Kind
-	out              interface{}
+	baseSettings []byte
+	fieldTypeMap map[string]reflect.Kind
+	out          interface{}
 }
 
 // Gather compiles configuration from various sources and
@@ -36,10 +35,9 @@ type settings struct {
 // 6. environment variables
 func Gather(opts ReadOptions, out interface{}) error {
 	s := settings{
-		baseSettings:     []byte{},
-		baseSettingsType: "",
-		fieldTypeMap:     map[string]reflect.Kind{},
-		out:              out,
+		baseSettings: []byte{},
+		fieldTypeMap: map[string]reflect.Kind{},
+		out:          out,
 	}
 
 	// create an internal map for each field and its type
@@ -173,6 +171,7 @@ func (s *settings) findOutFieldValue(fieldPath string) reflect.Value {
 			v = v.Elem()
 		}
 
+		fmt.Printf("what is this %v \n", v)
 		v = v.FieldByName(sf)
 	}
 
@@ -220,16 +219,7 @@ func (s *settings) readBaseSettings(path string) error {
 
 	s.baseSettings = bs
 
-	t, err := s.determineFileType(path)
-	if err != nil {
-		// unable to determine base settings file type
-		return err
-	}
-
-	// keep track of the base settings file type
-	s.baseSettingsType = t
-
-	if err := s.unmarshalFile(t, &path); err != nil {
+	if err := s.unmarshalFile(path, s.baseSettings, &s.out); err != nil {
 		return err
 	}
 
@@ -253,28 +243,9 @@ func (s *settings) readOverrideFile(path string) error {
 		return SettingsFileReadError(path, err.Error())
 	}
 
-	t, err := s.determineFileType(path)
-	if err != nil {
-		// unable to determine base settings file type
-		return err
-	}
-
 	oo := map[interface{}]interface{}{}
-
-	// read as YAML
-	if t == "yaml" {
-		if err := yaml.Unmarshal(b, &oo); err != nil {
-			// unable to unmarshal as YAML
-			return SettingsFileParseError(path, err.Error())
-		}
-
-		return nil
-	}
-
-	// read as JSON
-	if err := json.Unmarshal(b, &oo); err != nil {
-		// unable to unmarshal as JSON
-		return SettingsFileParseError(path, err.Error())
+	if err := s.unmarshalFile(path, b, &oo); err != nil {
+		return err
 	}
 
 	return nil
@@ -320,12 +291,18 @@ func (s *settings) searchForArgOverrides(args []string) error {
 	return nil
 }
 
-func (s *settings) unmarshalFile(t string, path *string) error {
+func (s *settings) unmarshalFile(path string, in []byte, out interface{}) error {
+	t, err := s.determineFileType(path)
+	if err != nil {
+		// unable to determine base settings file type
+		return err
+	}
+
 	// unmarshal YAML
 	if t == "yaml" {
-		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
+		if err := yaml.Unmarshal(in, out); err != nil {
 			// unable to unmarshal as YAML
-			return SettingsFileParseError(*path, err.Error())
+			return SettingsFileParseError(path, err.Error())
 		}
 
 		return nil
@@ -333,9 +310,9 @@ func (s *settings) unmarshalFile(t string, path *string) error {
 
 	// unmarshal JSON
 	if t == "json" {
-		if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
+		if err := json.Unmarshal(in, out); err != nil {
 			// unable to unmarshal as JSON
-			return SettingsFileParseError(*path, err.Error())
+			return SettingsFileParseError(path, err.Error())
 		}
 	}
 
