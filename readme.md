@@ -78,7 +78,7 @@ Viper is an incredible and feature rich configuration utility that also aligns, 
 
 Where [Viper](https://github.com/spf13/viper) differs is in the order in which configuration is loaded. Additionally, to load additional full or partial files specified through command line arguments or environment variables, custom code is required. 
 
-Ultimately, [Viper](https://github.com/spf13/viper) is a great choice for configuration as well. This package provides a subset of the functionality of [Viper](https://github.com/spf13/viper), and approaches the loading of configuration layers in a different order and with some nuance.
+Ultimately, [Viper](https://github.com/spf13/viper) is a great choice for configuration as well. This package provides a subset of the functionality of [Viper](https://github.com/spf13/viper), and approaches the loading of configuration layers in a different order and with a completely different underlying approach.
 
 ### Viper doesn't support case-senstive keys... does this library?
 
