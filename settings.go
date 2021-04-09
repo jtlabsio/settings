@@ -312,7 +312,7 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 			// now iterate search paths
 			for _, prefix := range searchPaths {
 				sp := path.Join(prefix, envName)
-				fmt.Printf("search file: %s", sp)
+				fmt.Printf("search file: %s\n", sp)
 			}
 
 			/*
