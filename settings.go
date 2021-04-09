@@ -244,7 +244,7 @@ func (s *settings) readOverrideFile(path string) error {
 	}
 
 	oo := map[interface{}]interface{}{}
-	if err := s.unmarshalFile(path, b, &oo); err != nil {
+	if err := s.unmarshalFile(path, b, oo); err != nil {
 		return err
 	}
 
