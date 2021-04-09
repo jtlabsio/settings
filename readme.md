@@ -82,6 +82,8 @@ Ultimately, [Viper](https://github.com/spf13/viper) is a great choice for config
 
 ### Viper doesn't support case-senstive keys... does this library?
 
-TL;DR: yes
+TL;DR: yes, but this isn't really applicable in this package.
 
-The approach within Viper involves loading configuration from various sources and each source is a potential source of truth for the configuration value. As such, it would be a non-trivial matter for Viper to support case-sensitve key lookup. In this package, the source of truth for the configuration value is considered the `out interface{}` struct provided to the `Gather` method. All other sources for configuration are mapped to the desired output struct.
+The approach within Viper involves loading configuration from various sources and each source is a potential origin of the configuration value. It would be a non-trivial matter for Viper to support case-sensitve key lookup. 
+
+In this package, there is a single source of truth for the final configuration, which is the `out interface{}` struct provided to the `Gather` method. All other sources for configuration are mapped to the desired output struct.
