@@ -229,22 +229,8 @@ func (s *settings) readBaseSettings(path string) error {
 	// keep track of the base settings file type
 	s.baseSettingsType = t
 
-	// unmarshal base YAML
-	if t == "yaml" {
-		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
-			// unable to unmarshal as YAML
-			return SettingsFileParseError(path, err.Error())
-		}
-
-		return nil
-	}
-
-	// unmarshal base JSON
-	if t == "json" {
-		if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
-			// unable to unmarshal as JSON
-			return SettingsFileParseError(path, err.Error())
-		}
+	if err := s.unmarshalFile(t, &path); err != nil {
+		return err
 	}
 
 	return nil
@@ -273,23 +259,8 @@ func (s *settings) readOverrideFile(path string) error {
 		return err
 	}
 
-	// read as YAML
-	if t == "yaml" {
-		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
-			// unable to unmarshal as YAML
-			return SettingsFileParseError(path, err.Error())
-		}
-
-		return nil
-	}
-
-	// read as JSON
-	// unmarshal base JSON
-	if t == "json" {
-		if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
-			// unable to unmarshal as JSON
-			return SettingsFileParseError(path, err.Error())
-		}
+	if err := s.unmarshalFile(t, &path); err != nil {
+		return err
 	}
 
 	return nil
@@ -326,6 +297,29 @@ func (s *settings) searchForArgOverrides(args []string) error {
 		// we found a path...
 		if path != "" {
 			fmt.Printf("path found with command line arg (%s): %s\n", a, path)
+		}
+	}
+
+	return nil
+}
+
+func (s *settings) unmarshalFile(t string, path *string) error {
+	// read as YAML
+	if t == "yaml" {
+		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
+			// unable to unmarshal as YAML
+			return SettingsFileParseError(*path, err.Error())
+		}
+
+		return nil
+	}
+
+	// read as JSON
+	// unmarshal base JSON
+	if t == "json" {
+		if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
+			// unable to unmarshal as JSON
+			return SettingsFileParseError(*path, err.Error())
 		}
 	}
 
