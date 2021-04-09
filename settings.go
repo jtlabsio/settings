@@ -45,7 +45,6 @@ func Read(opts ReadOptions, out interface{}) error {
 
 	// read in base path (should be the base config file)
 	if err := s.readBaseSettings(opts.BasePath); err != nil {
-		// TODO: consider wrapping error
 		return err
 	}
 
