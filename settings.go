@@ -171,7 +171,6 @@ func (s *settings) findOutFieldValue(fieldPath string) reflect.Value {
 			v = v.Elem()
 		}
 
-		fmt.Printf("looking for %s in %v \n", fieldPath, v)
 		v = v.FieldByName(sf)
 	}
 
@@ -197,6 +196,24 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 	for i := 0; i < fields; i++ {
 		f := field.Type.FieldByIndex([]int{i})
 		s.iterateFields(fieldName, f)
+	}
+}
+
+func (s *settings) iterateMap(m map[string]interface{}) {
+	if m == nil {
+		return
+	}
+
+	for f, v := range m {
+		fmt.Printf("field %s: %v\n", f, v)
+
+		if reflect.TypeOf(v).Kind() == reflect.Map {
+			for sf, sv := range v.(map[interface{}]interface{}) {
+				fmt.Printf("%v: %v", sf, sv)
+			}
+
+			// s.iterateMap(v.(map[string]interface{}))
+		}
 	}
 }
 
@@ -243,8 +260,8 @@ func (s *settings) readOverrideFile(path string) error {
 		return SettingsFileReadError(path, err.Error())
 	}
 
-	oo := map[interface{}]interface{}{}
-	if err := s.unmarshalFile(path, b, oo); err != nil {
+	// unmarshal over the top of the base...
+	if err := s.unmarshalFile(path, b, s.out); err != nil {
 		return err
 	}
 
