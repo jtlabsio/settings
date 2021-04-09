@@ -60,9 +60,9 @@ func Read(opts ReadOptions, out interface{}) error {
 
 	// read any applicable environment override files
 
-	// apply environment variables
-
 	// apply command line arguments
+
+	// apply environment variables
 
 	return nil
 }

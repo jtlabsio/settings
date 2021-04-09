@@ -12,7 +12,7 @@ func TestOptions(t *testing.T) {
 	}{
 		{
 			name: "should return empty ReadOptions",
-			want: ReadOptions{},
+			want: Options(),
 		},
 	}
 	for _, tt := range tests {
@@ -42,7 +42,8 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 				argsMap: map[string]string{},
 			},
 			ReadOptions{
-				ArgsMap: map[string]string{},
+				ArgsMap:       map[string]string{},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -57,6 +58,7 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 				ArgsMap: map[string]string{
 					"test.test": "TEST_TEST",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -74,6 +76,7 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 					"something.else": "SOMETHING_ELSE",
 					"test.test":      "TEST_TEST",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -92,6 +95,7 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 					"something.else": "SOMETHING_ELSE",
 					"test.test":      "TEST_TEST",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -109,6 +113,7 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 				ArgsMap: map[string]string{
 					"test.test": "TEST_TEST",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 	}
@@ -151,7 +156,8 @@ func TestReadOptions_SetBasePath(t *testing.T) {
 				"/usr/local/whatever.yml",
 			},
 			ReadOptions{
-				BasePath: "/usr/local/whatever.yml",
+				BasePath:      "/usr/local/whatever.yml",
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 	}
@@ -184,7 +190,8 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 				defMap: map[string]interface{}{},
 			},
 			ReadOptions{
-				DefaultsMap: map[string]interface{}{},
+				DefaultsMap:   map[string]interface{}{},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -199,6 +206,7 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 				DefaultsMap: map[string]interface{}{
 					"test.test": "testing 123",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -216,6 +224,7 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 					"something.else": 1234,
 					"test.test":      "testing 123",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -234,6 +243,7 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 					"something.else": 1234,
 					"test.test":      "testing 123",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -251,6 +261,7 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 				DefaultsMap: map[string]interface{}{
 					"test.test": "testing 123",
 				},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 	}
@@ -293,7 +304,8 @@ func TestReadOptions_SetSearchPaths(t *testing.T) {
 				[]string{".", "./config", "./settings"},
 			},
 			ReadOptions{
-				SearchPaths: []string{".", "./config", "./settings"},
+				SearchPaths:   []string{".", "./config", "./settings"},
+				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 	}
@@ -326,7 +338,8 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				varsMap: map[string]string{},
 			},
 			ReadOptions{
-				VarsMap: map[string]string{},
+				VarsEnvLookup: VarsEnvLookup,
+				VarsMap:       map[string]string{},
 			},
 		},
 		{
@@ -338,6 +351,7 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				},
 			},
 			ReadOptions{
+				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"test.test": "--test-test",
 				},
@@ -354,6 +368,7 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				},
 			},
 			ReadOptions{
+				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"something.else": "--something-else",
 					"test.test":      "--test-test",
@@ -372,6 +387,7 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				[]bool{false},
 			},
 			ReadOptions{
+				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"something.else": "--something-else",
 					"test.test":      "--test-test",
@@ -390,6 +406,7 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				[]bool{true},
 			},
 			ReadOptions{
+				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"test.test": "--test-test",
 				},

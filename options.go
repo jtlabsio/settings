@@ -1,20 +1,25 @@
 package settings
 
+var VarsEnvLookup = []string{"GO_ENV", "GO_ENVIRONMENT"}
+
 // ReadOptions define additional optional instructions for
 // the Settings package when reading and compiling layers of
 // configuration settings from various sources
 type ReadOptions struct {
-	ArgsMap     map[string]string
-	BasePath    string
-	DefaultsMap map[string]interface{}
-	SearchPaths []string
-	VarsMap     map[string]string
+	ArgsMap       map[string]string
+	BasePath      string
+	DefaultsMap   map[string]interface{}
+	SearchPaths   []string
+	VarsEnvLookup []string
+	VarsMap       map[string]string
 }
 
 // Options returns an empty ReadOptions for use with the
 // Settings package
 func Options() ReadOptions {
-	return ReadOptions{}
+	return ReadOptions{
+		VarsEnvLookup: VarsEnvLookup,
+	}
 }
 
 // SetArgsMap will either rewrite or, by default, augment the map
