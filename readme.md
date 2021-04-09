@@ -73,7 +73,7 @@ This settings library was built in the spirit of <https://github.com/brozeph/set
 Viper is an incredible and feature rich configuration utility that also aligns, philosophically, with 12-factor principles. [Viper](https://github.com/spf13/viper) supports several features that this package does not:
 
 * loading configuration from external sources (i.e. Consul, etcd, and k/v stores, etc.)
-* reading configuration from more sources (i.e. HCL, INI and dotenv files, etc.)
+* reading configuration from more sources (i.e. HCL, INI, TOML, dotenv files, etc.)
 * saving configuration back out to a destination
 
 Where [Viper](https://github.com/spf13/viper) differs is in the order in which configuration is loaded. Additionally, to load additional full or partial files specified through command line arguments or environment variables, custom code is required. 

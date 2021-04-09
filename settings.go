@@ -137,18 +137,19 @@ func (s *settings) determineFieldTypes() error {
 	return nil
 }
 
-func (s *settings) determineFileType(path string) error {
+func (s *settings) determineFileType(path string) (string, error) {
 	ext := filepath.Ext(path)
+	var t string
 	switch ext {
 	case ".yml", ".yaml":
-		s.baseSettingsType = "yaml"
+		t = "yaml"
 	case ".json":
-		s.baseSettingsType = "json"
+		t = "json"
 	default:
-		return SettingsFileTypeError(path, ext)
+		return t, SettingsFileTypeError(path, ext)
 	}
 
-	return nil
+	return t, nil
 }
 
 func (s *settings) findOutFieldValue(fieldPath string) reflect.Value {
@@ -219,10 +220,14 @@ func (s *settings) readBaseSettings(path string) error {
 
 	s.baseSettings = bs
 
-	if err := s.determineFileType(path); err != nil {
+	t, err := s.determineFileType(path)
+	if err != nil {
 		// unable to determine base settings file type
 		return err
 	}
+
+	// keep track of the base settings file type
+	s.baseSettingsType = t
 
 	// unmarshal base YAML
 	if s.baseSettingsType == "yaml" {
@@ -239,6 +244,44 @@ func (s *settings) readBaseSettings(path string) error {
 		// unable to unmarshal as JSON
 		return SettingsFileParseError(path, err.Error())
 	}
+
+	return nil
+}
+
+func (s *settings) readOverrideFile(path string) error {
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// base path doesn't exist
+			return err
+		}
+
+		// unable to stat the file for other reasons...
+		return SettingsFileReadError(path, err.Error())
+	}
+
+	_, err := ioutil.ReadFile(path)
+	if err != nil {
+		// unable to read the file
+		return SettingsFileReadError(path, err.Error())
+	}
+
+	t, err := s.determineFileType(path)
+	if err != nil {
+		// unable to determine base settings file type
+		return err
+	}
+
+	// read as YAML
+	if t == "yaml" {
+		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
+			// unable to unmarshal as YAML
+			return SettingsFileParseError(path, err.Error())
+		}
+
+		return nil
+	}
+
+	// read as JSON
 
 	return nil
 }
