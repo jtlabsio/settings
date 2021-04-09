@@ -171,7 +171,7 @@ func (s *settings) findOutFieldValue(fieldPath string) reflect.Value {
 			v = v.Elem()
 		}
 
-		fmt.Printf("what is this %v \n", v)
+		fmt.Printf("looking for %s in %v \n", fieldPath, v)
 		v = v.FieldByName(sf)
 	}
 
@@ -219,7 +219,7 @@ func (s *settings) readBaseSettings(path string) error {
 
 	s.baseSettings = bs
 
-	if err := s.unmarshalFile(path, s.baseSettings, &s.out); err != nil {
+	if err := s.unmarshalFile(path, s.baseSettings, s.out); err != nil {
 		return err
 	}
 
