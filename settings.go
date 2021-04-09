@@ -87,7 +87,7 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 			}
 
 			// find the field within the out struct and set it (if we can)
-			v := s.findField(fieldName)
+			v := s.findFieldValue(fieldName)
 			if v.CanSet() {
 				dv := reflect.ValueOf(defaultValue)
 				v.Set(dv)
@@ -142,7 +142,7 @@ func (s *settings) determineFileType(path string) error {
 	return nil
 }
 
-func (s *settings) findField(fieldPath string) reflect.Value {
+func (s *settings) findFieldValue(fieldPath string) reflect.Value {
 	if fieldPath == "" {
 		return reflect.Value{}
 	}
@@ -231,5 +231,9 @@ func (s *settings) readBaseSettings(path string) error {
 		return SettingsFileParseError(path, err.Error())
 	}
 
+	return nil
+}
+
+func (s *settings) lookupVarPath() error {
 	return nil
 }

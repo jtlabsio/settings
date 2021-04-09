@@ -24,6 +24,36 @@ func TestOptions(t *testing.T) {
 	}
 }
 
+func TestReadOptions_SetArgsFileOverride(t *testing.T) {
+	type args struct {
+		args []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want ReadOptions
+	}{
+		{
+			"should properly set the file override args when provided",
+			args{
+				[]string{"--config-file", "-cf"},
+			},
+			ReadOptions{
+				ArgsFileOverride: []string{"--config-file", "-cf"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ro := Options()
+
+			if got := ro.SetArgsFileOverride(tt.args.args...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadOptions.SetArgsFileOverride() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReadOptions_SetArgsMap(t *testing.T) {
 	type args struct {
 		argsMap map[string]string
@@ -42,8 +72,7 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 				argsMap: map[string]string{},
 			},
 			ReadOptions{
-				ArgsMap:       map[string]string{},
-				VarsEnvLookup: VarsEnvLookup,
+				ArgsMap: map[string]string{},
 			},
 		},
 		{
@@ -58,7 +87,6 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 				ArgsMap: map[string]string{
 					"test.test": "TEST_TEST",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -76,7 +104,6 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 					"something.else": "SOMETHING_ELSE",
 					"test.test":      "TEST_TEST",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -95,7 +122,6 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 					"something.else": "SOMETHING_ELSE",
 					"test.test":      "TEST_TEST",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -113,7 +139,6 @@ func TestReadOptions_SetArgsMap(t *testing.T) {
 				ArgsMap: map[string]string{
 					"test.test": "TEST_TEST",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 	}
@@ -156,8 +181,7 @@ func TestReadOptions_SetBasePath(t *testing.T) {
 				"/usr/local/whatever.yml",
 			},
 			ReadOptions{
-				BasePath:      "/usr/local/whatever.yml",
-				VarsEnvLookup: VarsEnvLookup,
+				BasePath: "/usr/local/whatever.yml",
 			},
 		},
 	}
@@ -190,8 +214,7 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 				defMap: map[string]interface{}{},
 			},
 			ReadOptions{
-				DefaultsMap:   map[string]interface{}{},
-				VarsEnvLookup: VarsEnvLookup,
+				DefaultsMap: map[string]interface{}{},
 			},
 		},
 		{
@@ -206,7 +229,6 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 				DefaultsMap: map[string]interface{}{
 					"test.test": "testing 123",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -224,7 +246,6 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 					"something.else": 1234,
 					"test.test":      "testing 123",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -243,7 +264,6 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 					"something.else": 1234,
 					"test.test":      "testing 123",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 		{
@@ -261,7 +281,6 @@ func TestReadOptions_SetDefaultsMap(t *testing.T) {
 				DefaultsMap: map[string]interface{}{
 					"test.test": "testing 123",
 				},
-				VarsEnvLookup: VarsEnvLookup,
 			},
 		},
 	}
@@ -304,8 +323,7 @@ func TestReadOptions_SetSearchPaths(t *testing.T) {
 				[]string{".", "./config", "./settings"},
 			},
 			ReadOptions{
-				SearchPaths:   []string{".", "./config", "./settings"},
-				VarsEnvLookup: VarsEnvLookup,
+				SearchPaths: []string{".", "./config", "./settings"},
 			},
 		},
 	}
@@ -315,6 +333,36 @@ func TestReadOptions_SetSearchPaths(t *testing.T) {
 
 			if got := ro.SetSearchPaths(tt.args.paths...); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadOptions.SetSearchPaths() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReadOptions_SetVarsFileOverride(t *testing.T) {
+	type args struct {
+		vars []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want ReadOptions
+	}{
+		{
+			"should properly set the file override args when provided",
+			args{
+				[]string{"GO_ENV", "CONFIG_FILE"},
+			},
+			ReadOptions{
+				VarsFileOverride: []string{"GO_ENV", "CONFIG_FILE"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ro := Options()
+
+			if got := ro.SetVarsFileOverride(tt.args.vars...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadOptions.SetVarsFileOverride() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -338,8 +386,7 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				varsMap: map[string]string{},
 			},
 			ReadOptions{
-				VarsEnvLookup: VarsEnvLookup,
-				VarsMap:       map[string]string{},
+				VarsMap: map[string]string{},
 			},
 		},
 		{
@@ -351,7 +398,6 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				},
 			},
 			ReadOptions{
-				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"test.test": "--test-test",
 				},
@@ -368,7 +414,6 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				},
 			},
 			ReadOptions{
-				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"something.else": "--something-else",
 					"test.test":      "--test-test",
@@ -387,7 +432,6 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				[]bool{false},
 			},
 			ReadOptions{
-				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"something.else": "--something-else",
 					"test.test":      "--test-test",
@@ -406,7 +450,6 @@ func TestReadOptions_SetVarsMap(t *testing.T) {
 				[]bool{true},
 			},
 			ReadOptions{
-				VarsEnvLookup: VarsEnvLookup,
 				VarsMap: map[string]string{
 					"test.test": "--test-test",
 				},

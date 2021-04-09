@@ -1,25 +1,35 @@
 package settings
 
-var VarsEnvLookup = []string{"GO_ENV", "GO_ENVIRONMENT"}
-
 // ReadOptions define additional optional instructions for
 // the Settings package when reading and compiling layers of
 // configuration settings from various sources
 type ReadOptions struct {
-	ArgsMap       map[string]string
-	BasePath      string
-	DefaultsMap   map[string]interface{}
-	SearchPaths   []string
-	VarsEnvLookup []string
-	VarsMap       map[string]string
+	ArgsFileOverride []string
+	ArgsMap          map[string]string
+	BasePath         string
+	DefaultsMap      map[string]interface{}
+	SearchPaths      []string
+	VarsFileOverride []string
+	VarsMap          map[string]string
 }
 
 // Options returns an empty ReadOptions for use with the
 // Settings package
 func Options() ReadOptions {
-	return ReadOptions{
-		VarsEnvLookup: VarsEnvLookup,
+	return ReadOptions{}
+}
+
+// SetArgsFileOverride instructs the settings package on where to look
+// for any potential override file locations that are provided as command
+// line arguments
+func (ro ReadOptions) SetArgsFileOverride(args ...string) ReadOptions {
+	if len(ro.ArgsFileOverride) == 0 {
+		ro.ArgsFileOverride = []string{}
 	}
+
+	ro.ArgsFileOverride = append(ro.ArgsFileOverride, args...)
+
+	return ro
 }
 
 // SetArgsMap will either rewrite or, by default, augment the map
@@ -84,6 +94,19 @@ func (ro ReadOptions) SetSearchPaths(paths ...string) ReadOptions {
 	}
 
 	ro.SearchPaths = append(ro.SearchPaths, paths...)
+
+	return ro
+}
+
+// SetVarsFileOverride instructs the settings package on where to look
+// for any potential override file locations that are provided as environment
+// variables to the application
+func (ro ReadOptions) SetVarsFileOverride(vars ...string) ReadOptions {
+	if len(ro.VarsFileOverride) == 0 {
+		ro.VarsFileOverride = []string{}
+	}
+
+	ro.VarsFileOverride = append(ro.ArgsFileOverride, vars...)
 
 	return ro
 }
