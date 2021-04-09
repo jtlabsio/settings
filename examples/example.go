@@ -31,6 +31,7 @@ func main() {
 		SetDefaultsMap(map[string]interface{}{
 			"Server.Address": ":8080",
 		}).
+		SetArgsFileOverride("--config-file", "-cf").
 		SetArgsMap(map[string]string{
 			"--data-name": "Data.Name",
 			"--data-host": "Data.Host",

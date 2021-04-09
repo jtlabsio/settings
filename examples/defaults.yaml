@@ -1,4 +1,4 @@
-name: "pinapple"
+name: "example"
 version: "1.0"
 data:
   name: example-db

@@ -13,7 +13,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var dotRE = regexp.MustCompile(`\.`)
+var (
+	dotRE   = regexp.MustCompile(`\.`)
+	equalRE = regexp.MustCompile(`=`)
+)
 
 type settings struct {
 	baseSettings     []byte
@@ -58,6 +61,11 @@ func Gather(opts ReadOptions, out interface{}) error {
 		return err
 	}
 
+	// iterate each arg file override
+	if err := s.searchForArgOverrides(opts.ArgsFileOverride); err != nil {
+		return err
+	}
+
 	// read any applicable environment override files
 
 	// apply command line arguments
@@ -88,7 +96,7 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 			}
 
 			// find the field within the out struct and set it (if we can)
-			v := s.findFieldValue(fieldName)
+			v := s.findOutFieldValue(fieldName)
 			if v.CanSet() {
 				dv := reflect.ValueOf(defaultValue)
 				v.Set(dv)
@@ -143,7 +151,7 @@ func (s *settings) determineFileType(path string) error {
 	return nil
 }
 
-func (s *settings) findFieldValue(fieldPath string) reflect.Value {
+func (s *settings) findOutFieldValue(fieldPath string) reflect.Value {
 	if fieldPath == "" {
 		return reflect.Value{}
 	}
@@ -235,6 +243,39 @@ func (s *settings) readBaseSettings(path string) error {
 	return nil
 }
 
-func (s *settings) lookupVarPath() error {
+func (s *settings) searchForArgOverrides(args []string) error {
+	if len(args) == 0 {
+		return nil
+	}
+
+	for _, a := range args {
+		var path string
+		totalArgs := len(os.Args)
+
+		for i, oa := range os.Args {
+			// check for `--cli-arg=` scenario (where value is specified after =)
+			if equalRE.MatchString(oa) {
+				al := len(a)
+				if len(oa) > al && oa[0:al] == a {
+					// we have a match...
+					path = oa[al+1:] // grab everything after the =
+					break
+				}
+			}
+
+			// check for direct arg match
+			if oa == a && i < totalArgs-1 {
+				// path should be the next argument specified
+				path = os.Args[i+1]
+				break
+			}
+		}
+
+		// we found a path...
+		if path != "" {
+			fmt.Printf("path found with command line arg (%s): %s\n", a, path)
+		}
+	}
+
 	return nil
 }
