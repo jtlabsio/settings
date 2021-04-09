@@ -66,7 +66,7 @@ func main() {
 
 For our use case, we desired a simple and extensible configuration mechanism that spiritually adheres to 12-factor principles and facilitates the layered specification of application settings / configuration. An initial base configuration file to be the start, with an ability to specify override files as a layer of additional settings (either full or partial) on top of the base file (the locations for which specified via command line arguments or environment variables). Finally, having an ability to override individual keys within the configuration with specific environment variables or command line arguments. 
 
-This settings library was built in the spirit of <https://github.com/brozeph/settings-lib>, which , in many ways, could be considered this package's Node.js flavored older sibling. This package is not a direct port of [settings-lib](https://github.com/brozeph/settings-lib), though, and makes use of Go specific idioms.
+This settings library was built in the spirit of <https://github.com/brozeph/settings-lib>, which in many ways could be considered this package's Node.js flavored older sibling. This package is not a direct port of [settings-lib](https://github.com/brozeph/settings-lib), though, and makes use of Go specific idioms.
 
 ### How is this different than <https://github.com/spf13/viper>?
 
