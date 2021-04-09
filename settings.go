@@ -304,7 +304,7 @@ func (s *settings) searchForArgOverrides(args []string) error {
 }
 
 func (s *settings) unmarshalFile(t string, path *string) error {
-	// read as YAML
+	// unmarshal YAML
 	if t == "yaml" {
 		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
 			// unable to unmarshal as YAML
@@ -314,8 +314,7 @@ func (s *settings) unmarshalFile(t string, path *string) error {
 		return nil
 	}
 
-	// read as JSON
-	// unmarshal base JSON
+	// unmarshal JSON
 	if t == "json" {
 		if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
 			// unable to unmarshal as JSON
