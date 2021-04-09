@@ -259,7 +259,7 @@ func (s *settings) readOverrideFile(path string) error {
 		return SettingsFileReadError(path, err.Error())
 	}
 
-	_, err := ioutil.ReadFile(path)
+	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		// unable to read the file
 		return SettingsFileReadError(path, err.Error())
@@ -271,9 +271,11 @@ func (s *settings) readOverrideFile(path string) error {
 		return err
 	}
 
+	oo := map[interface{}]interface{}{}
+
 	// read as YAML
 	if t == "yaml" {
-		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
+		if err := yaml.Unmarshal(b, &oo); err != nil {
 			// unable to unmarshal as YAML
 			return SettingsFileParseError(path, err.Error())
 		}
@@ -282,6 +284,10 @@ func (s *settings) readOverrideFile(path string) error {
 	}
 
 	// read as JSON
+	if err := json.Unmarshal(b, &oo); err != nil {
+		// unable to unmarshal as JSON
+		return SettingsFileParseError(path, err.Error())
+	}
 
 	return nil
 }
@@ -317,6 +323,9 @@ func (s *settings) searchForArgOverrides(args []string) error {
 		// we found a path...
 		if path != "" {
 			fmt.Printf("path found with command line arg (%s): %s\n", a, path)
+			if err := s.readOverrideFile(path); err != nil {
+				return err
+			}
 		}
 	}
 
