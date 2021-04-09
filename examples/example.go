@@ -44,7 +44,7 @@ func main() {
 		})
 
 	// read in configuration from all sources
-	if err := settings.Read(options, &c); err != nil {
+	if err := settings.Gather(options, &c); err != nil {
 		log.Fatal(err)
 	}
 

@@ -22,15 +22,16 @@ type settings struct {
 	out              interface{}
 }
 
-// Read compiles configuration from various sources and
+// Gather compiles configuration from various sources and
 // iteratively builds up the out object with the values
-// that are read successively from the following sources:
+// that are retrieved successively from the following sources:
 // 1. base settings file
 // 2. defaults as configured in options (*diverges from github.com/brozeph/settings-lib)
-// 3. subsequent override settings files
-// 4. command line arguments
-// 5. environment variables
-func Read(opts ReadOptions, out interface{}) error {
+// 3. override files (from command line)
+// 4. override files (from environment)
+// 5. command line arguments
+// 6. environment variables
+func Gather(opts ReadOptions, out interface{}) error {
 	s := settings{
 		baseSettings:     []byte{},
 		baseSettingsType: "",
