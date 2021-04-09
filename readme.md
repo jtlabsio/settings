@@ -14,49 +14,49 @@ go get -u go.jtlabs.io/settings
 package main
 
 import (
-	"log"
+  "log"
 
-	"go.jtlabs.io/settings"
+  "go.jtlabs.io/settings"
 )
 
 type config struct {
-	Data struct {
-		Name string `json:"name"`
-		Host string `json:"host"`
-		Port int    `json:"port"`
-	} `json:"data"`
-	Logging struct {
-		Level string `json:"level"`
-	} `json:"logging"`
-	Server struct {
-		Address string `json:"address"`
-	} `json:"server"`
+  Data struct {
+    Name string `json:"name"`
+    Host string `json:"host"`
+    Port int    `json:"port"`
+  } `json:"data"`
+  Logging struct {
+    Level string `json:"level"`
+  } `json:"logging"`
+  Server struct {
+    Address string `json:"address"`
+  } `json:"server"`
 }
 
 func main() {
-	var c config
-	options := settings.Options().
-		SetBasePath("./defaults.yaml").
-		SetSearchPaths("./", "./config", "./settings").
-		SetDefaultsMap(map[string]interface{}{
-			"Server.Address": ":3080",
-		}).
-		SetArgsMap(map[string]string{
-			"--data-name": "Data.Name",
-			"--data-host": "Data.Host",
-			"--data-port": "Data.Port",
-		}).
-		SetVarsMap(map[string]string{
-			"DATA_NAME":      "Data.Name",
-			"DATA_HOST":      "Data.Host",
-			"DATA_PORT":      "Data.Port",
-			"SERVER_ADDRESS": "Server.Address",
-		})
+  var c config
+  options := settings.Options().
+    SetBasePath("./defaults.yaml").
+    SetSearchPaths("./", "./config", "./settings").
+    SetDefaultsMap(map[string]interface{}{
+      "Server.Address": ":3080",
+    }).
+    SetArgsMap(map[string]string{
+      "--data-name": "Data.Name",
+      "--data-host": "Data.Host",
+      "--data-port": "Data.Port",
+    }).
+    SetVarsMap(map[string]string{
+      "DATA_NAME":      "Data.Name",
+      "DATA_HOST":      "Data.Host",
+      "DATA_PORT":      "Data.Port",
+      "SERVER_ADDRESS": "Server.Address",
+    })
 
-	// read in configuration from all sources
-	if err := settings.Gather(options, &c); err != nil {
-		log.Fatal(err)
-	}
+  // read in configuration from all sources
+  if err := settings.Gather(options, &c); err != nil {
+    log.Fatal(err)
+  }
 }
 ```
 
