@@ -230,7 +230,7 @@ func (s *settings) readBaseSettings(path string) error {
 	s.baseSettingsType = t
 
 	// unmarshal base YAML
-	if s.baseSettingsType == "yaml" {
+	if t == "yaml" {
 		if err := yaml.Unmarshal(s.baseSettings, s.out); err != nil {
 			// unable to unmarshal as YAML
 			return SettingsFileParseError(path, err.Error())
@@ -240,9 +240,11 @@ func (s *settings) readBaseSettings(path string) error {
 	}
 
 	// unmarshal base JSON
-	if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
-		// unable to unmarshal as JSON
-		return SettingsFileParseError(path, err.Error())
+	if t == "json" {
+		if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
+			// unable to unmarshal as JSON
+			return SettingsFileParseError(path, err.Error())
+		}
 	}
 
 	return nil
@@ -282,6 +284,13 @@ func (s *settings) readOverrideFile(path string) error {
 	}
 
 	// read as JSON
+	// unmarshal base JSON
+	if t == "json" {
+		if err := json.Unmarshal(s.baseSettings, s.out); err != nil {
+			// unable to unmarshal as JSON
+			return SettingsFileParseError(path, err.Error())
+		}
+	}
 
 	return nil
 }
