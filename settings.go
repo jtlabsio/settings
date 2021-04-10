@@ -15,12 +15,12 @@ import (
 )
 
 var (
-	dotRE   = regexp.MustCompile(`\.`)
-	equalRE = regexp.MustCompile(`=`)
+	dotRE       = regexp.MustCompile(`\.`)
+	equalRE     = regexp.MustCompile(`=`)
+	settingsExt = []string{".yml", ".yaml", ".json"}
 )
 
 type settings struct {
-	baseSettings []byte
 	fieldTypeMap map[string]reflect.Kind
 	out          interface{}
 }
@@ -36,7 +36,6 @@ type settings struct {
 // 6. environment variables
 func Gather(opts ReadOptions, out interface{}) error {
 	s := settings{
-		baseSettings: []byte{},
 		fieldTypeMap: map[string]reflect.Kind{},
 		out:          out,
 	}
@@ -66,7 +65,7 @@ func Gather(opts ReadOptions, out interface{}) error {
 	}
 
 	// read any applicable environment override files
-	if err := s.searchForEnvOverrides(opts.VarsFileOverride, opts.SearchPaths); err != nil {
+	if err := s.searchForEnvOverrides(opts.EnvOverride, opts.EnvSearchPaths); err != nil {
 		return err
 	}
 
@@ -214,15 +213,7 @@ func (s *settings) readBaseSettings(path string) error {
 		return SettingsFileReadError(path, err.Error())
 	}
 
-	bs, err := ioutil.ReadFile(path)
-	if err != nil {
-		// unable to read the file
-		return SettingsFileReadError(path, err.Error())
-	}
-
-	s.baseSettings = bs
-
-	if err := s.unmarshalFile(path, s.baseSettings, s.out); err != nil {
+	if err := s.unmarshalFile(path, s.out); err != nil {
 		return err
 	}
 
@@ -240,14 +231,8 @@ func (s *settings) readOverrideFile(path string) error {
 		return SettingsFileReadError(path, err.Error())
 	}
 
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		// unable to read the file
-		return SettingsFileReadError(path, err.Error())
-	}
-
 	// unmarshal over the top of the base...
-	if err := s.unmarshalFile(path, b, s.out); err != nil {
+	if err := s.unmarshalFile(path, s.out); err != nil {
 		return err
 	}
 
@@ -305,32 +290,42 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 	for _, v := range vars {
 		envName := os.Getenv(v)
 
-		// we found a path...
+		// detected an environment name
 		if envName != "" {
-			fmt.Printf("path found with environment var (%s): %s\n", v, envName)
-
 			// now iterate search paths
 			for _, prefix := range searchPaths {
 				sp := path.Join(prefix, envName)
-				fmt.Printf("search file: %s\n", sp)
-			}
+				for _, ext := range settingsExt {
+					spf := fmt.Sprintf("%s%s", sp, ext)
 
-			/*
-				if err := s.readOverrideFile(path); err != nil {
-					return err
+					// continue when the file can't be opened (presumably does not exist)
+					if _, err := os.Stat(spf); err != nil {
+						continue
+					}
+
+					// unmarshal the environment override over the base
+					if err := s.readOverrideFile(spf); err != nil {
+						return err
+					}
 				}
-			*/
+			}
 		}
 	}
 
 	return nil
 }
 
-func (s *settings) unmarshalFile(path string, in []byte, out interface{}) error {
+func (s *settings) unmarshalFile(path string, out interface{}) error {
 	t, err := s.determineFileType(path)
 	if err != nil {
 		// unable to determine base settings file type
 		return err
+	}
+
+	in, err := ioutil.ReadFile(path)
+	if err != nil {
+		// unable to read the file
+		return SettingsFileReadError(path, err.Error())
 	}
 
 	// unmarshal YAML

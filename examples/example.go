@@ -27,17 +27,17 @@ func main() {
 	var c config
 	options := settings.Options().
 		SetBasePath("./examples/defaults.yaml").
-		SetSearchPaths("./", "./config", "./settings", "./examples").
 		SetDefaultsMap(map[string]interface{}{
 			"Server.Address": ":8080",
 		}).
+		SetEnvOverride("GO_ENV").
+		SetEnvSearchPaths("./", "./config", "./settings", "./examples").
 		SetArgsFileOverride("--config-file", "-cf").
 		SetArgsMap(map[string]string{
 			"--data-name": "Data.Name",
 			"--data-host": "Data.Host",
 			"--data-port": "Data.Port",
 		}).
-		SetVarsFileOverride("GO_ENV").
 		SetVarsMap(map[string]string{
 			"DATA_NAME":      "Data.Name",
 			"DATA_HOST":      "Data.Host",

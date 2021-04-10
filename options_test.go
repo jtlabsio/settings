@@ -323,7 +323,7 @@ func TestReadOptions_SetSearchPaths(t *testing.T) {
 				[]string{".", "./config", "./settings"},
 			},
 			ReadOptions{
-				SearchPaths: []string{".", "./config", "./settings"},
+				EnvSearchPaths: []string{".", "./config", "./settings"},
 			},
 		},
 	}
@@ -331,7 +331,7 @@ func TestReadOptions_SetSearchPaths(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ro := Options()
 
-			if got := ro.SetSearchPaths(tt.args.paths...); !reflect.DeepEqual(got, tt.want) {
+			if got := ro.SetEnvSearchPaths(tt.args.paths...); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadOptions.SetSearchPaths() = %v, want %v", got, tt.want)
 			}
 		})
@@ -353,7 +353,7 @@ func TestReadOptions_SetVarsFileOverride(t *testing.T) {
 				[]string{"GO_ENV", "CONFIG_FILE"},
 			},
 			ReadOptions{
-				VarsFileOverride: []string{"GO_ENV", "CONFIG_FILE"},
+				EnvOverride: []string{"GO_ENV", "CONFIG_FILE"},
 			},
 		},
 	}
@@ -361,7 +361,7 @@ func TestReadOptions_SetVarsFileOverride(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ro := Options()
 
-			if got := ro.SetVarsFileOverride(tt.args.vars...); !reflect.DeepEqual(got, tt.want) {
+			if got := ro.SetEnvOverride(tt.args.vars...); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadOptions.SetVarsFileOverride() = %v, want %v", got, tt.want)
 			}
 		})

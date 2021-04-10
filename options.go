@@ -8,8 +8,8 @@ type ReadOptions struct {
 	ArgsMap          map[string]string
 	BasePath         string
 	DefaultsMap      map[string]interface{}
-	SearchPaths      []string
-	VarsFileOverride []string
+	EnvOverride      []string
+	EnvSearchPaths   []string
 	VarsMap          map[string]string
 }
 
@@ -85,28 +85,28 @@ func (ro ReadOptions) SetDefaultsMap(defMap map[string]interface{}, rewrite ...b
 	return ro
 }
 
-// SetSearchPaths can be used to instruct the Settings package on
-// where it might find additional configuration files for use when
-// loading additional layers of configuration
-func (ro ReadOptions) SetSearchPaths(paths ...string) ReadOptions {
-	if len(ro.SearchPaths) == 0 {
-		ro.SearchPaths = []string{}
+// SetEnvOverride instructs the settings package on where to look
+// for any potential override file locations that are provided as environment
+// variables to the application
+func (ro ReadOptions) SetEnvOverride(vars ...string) ReadOptions {
+	if len(ro.EnvOverride) == 0 {
+		ro.EnvOverride = []string{}
 	}
 
-	ro.SearchPaths = append(ro.SearchPaths, paths...)
+	ro.EnvOverride = append(ro.ArgsFileOverride, vars...)
 
 	return ro
 }
 
-// SetVarsFileOverride instructs the settings package on where to look
-// for any potential override file locations that are provided as environment
-// variables to the application
-func (ro ReadOptions) SetVarsFileOverride(vars ...string) ReadOptions {
-	if len(ro.VarsFileOverride) == 0 {
-		ro.VarsFileOverride = []string{}
+// SetEnvSearchPaths can be used to instruct the Settings package on
+// where it might find additional configuration files for use when
+// loading additional layers of configuration
+func (ro ReadOptions) SetEnvSearchPaths(paths ...string) ReadOptions {
+	if len(ro.EnvSearchPaths) == 0 {
+		ro.EnvSearchPaths = []string{}
 	}
 
-	ro.VarsFileOverride = append(ro.ArgsFileOverride, vars...)
+	ro.EnvSearchPaths = append(ro.EnvSearchPaths, paths...)
 
 	return ro
 }
