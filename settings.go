@@ -16,7 +16,6 @@ import (
 
 var (
 	dotRE       = regexp.MustCompile(`\.`)
-	equalRE     = regexp.MustCompile(`=`)
 	settingsExt = []string{".yml", ".yaml", ".json"}
 )
 
@@ -70,10 +69,43 @@ func Gather(opts ReadOptions, out interface{}) error {
 	}
 
 	// apply command line arguments
+	s.applyArgs(opts.ArgsMap)
 
 	// apply environment variables
 
 	return nil
+}
+
+func (s *settings) applyArgs(a map[string]string) {
+	eq := []byte(`=`)
+	totalArgs := len(os.Args)
+	for arg, field := range a {
+		for i, oa := range os.Args {
+			// check for `--cli-arg=` scenario (where value is specified after =)
+			al := len(arg)
+			if len(oa) > al && oa[0:al] == arg && oa[al] == eq[0] {
+				// we have a match...
+				fmt.Printf(
+					"found arg match %s (field %s): %s\n",
+					arg,
+					field,
+					cleanArgValue(oa[al:]))
+
+				break
+			}
+
+			// check for direct arg match
+			if oa == arg && i < totalArgs-1 {
+				fmt.Printf(
+					"found exact arg match %s (field %s): %s\n",
+					arg,
+					field,
+					cleanArgValue(os.Args[i+1]))
+
+				break
+			}
+		}
+	}
 }
 
 func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
@@ -246,12 +278,13 @@ func (s *settings) searchForArgOverrides(args []string) error {
 
 	for _, a := range args {
 		var path string
+		eq := []byte(`=`)
 		totalArgs := len(os.Args)
 
 		for i, oa := range os.Args {
 			// check for `--cli-arg=` scenario (where value is specified after =)
 			al := len(a)
-			if len(oa) > al && oa[0:al] == a && oa[al] == []byte("=")[0] {
+			if len(oa) > al && oa[0:al] == a && oa[al] == eq[0] {
 				// we have a match...
 				path = cleanArgValue(oa[al:])
 
