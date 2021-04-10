@@ -250,19 +250,18 @@ func (s *settings) searchForArgOverrides(args []string) error {
 
 		for i, oa := range os.Args {
 			// check for `--cli-arg=` scenario (where value is specified after =)
-			if equalRE.MatchString(oa) {
-				al := len(a)
-				if len(oa) > al && oa[0:al] == a {
-					// we have a match...
-					path = oa[al+1:] // grab everything after the =
-					break
-				}
+			al := len(a)
+			if len(oa) > al && oa[0:al] == a && oa[al] == []byte("=")[0] {
+				// we have a match...
+				path = cleanArgValue(oa[al:])
+
+				break
 			}
 
 			// check for direct arg match
 			if oa == a && i < totalArgs-1 {
 				// path should be the next argument specified
-				path = os.Args[i+1]
+				path = cleanArgValue(os.Args[i+1])
 				break
 			}
 		}
@@ -347,4 +346,28 @@ func (s *settings) unmarshalFile(path string, out interface{}) error {
 	}
 
 	return nil
+}
+
+func cleanArgValue(v string) string {
+	if len(v) == 0 {
+		return v
+	}
+
+	charCheck := []byte(`='"`)
+
+	for i, b := range charCheck {
+		// look for = as first char and remove it
+		if v[0] == b && i == 0 {
+			v = v[1:]
+			continue
+		}
+
+		// look for quotes (' or " surrounding the value)
+		l := len(v)
+		if v[0] == v[l-1] && v[0] == b {
+			v = v[1 : l-1]
+		}
+	}
+
+	return v
 }
