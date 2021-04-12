@@ -495,6 +495,12 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 					pv.Index(i).Set(reflect.ValueOf(v))
 				case reflect.String:
 					pv.Index(i).Set(reflect.ValueOf(sv))
+				default:
+					// complex64, complex128, chan, func, interface, map, ptr, struct and unsafeptr
+					return SettingsFieldSetError(
+						fieldPath,
+						t.Kind(),
+						errors.New("unsupported field type"))
 				}
 			}
 
