@@ -19,9 +19,25 @@ func SettingsFieldDoesNotExist(overrideType string, fieldName string) SettingsEr
 	}
 }
 
-func SettingsFieldSetError(fieldName string, t reflect.Kind) SettingsError {
+func SettingsFieldTypeMismatch(fieldName string, expectedType reflect.Kind, receivedType reflect.Kind) SettingsError {
 	return SettingsError{
-		Message: fmt.Sprintf("unable to set the value of a field in settings: %s (type: %v)", fieldName, t),
+		Message: fmt.Sprintf("type mismatch for field %s: expected %v but value is %v", fieldName, expectedType, receivedType),
+	}
+}
+
+func SettingsFieldSetError(fieldName string, t reflect.Kind, m ...error) SettingsError {
+	if len(m) == 0 {
+		return SettingsError{
+			Message: fmt.Sprintf("unable to set the value of a field in settings: %s (type: %v)", fieldName, t),
+		}
+	}
+
+	return SettingsError{
+		Message: fmt.Sprintf(
+			"unable to set the value of a field in settings: %s (type: %v): %s",
+			fieldName,
+			t,
+			m[0].Error()),
 	}
 }
 

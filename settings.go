@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 
 	"gopkg.in/yaml.v2"
 )
@@ -20,7 +21,7 @@ var (
 )
 
 type settings struct {
-	fieldTypeMap map[string]reflect.Kind
+	fieldTypeMap map[string]reflect.Type
 	out          interface{}
 }
 
@@ -35,7 +36,7 @@ type settings struct {
 // 6. environment variables
 func Gather(opts ReadOptions, out interface{}) error {
 	s := settings{
-		fieldTypeMap: map[string]reflect.Kind{},
+		fieldTypeMap: map[string]reflect.Type{},
 		out:          out,
 	}
 
@@ -69,18 +70,29 @@ func Gather(opts ReadOptions, out interface{}) error {
 	}
 
 	// apply command line arguments
-	s.applyArgs(opts.ArgsMap)
+	if err := s.applyArgs(opts.ArgsMap); err != nil {
+		return err
+	}
 
 	// apply environment variables
 
 	return nil
 }
 
-func (s *settings) applyArgs(a map[string]string) {
+func (s *settings) applyArgs(a map[string]string) error {
 	eq := []byte(`=`)
 	totalArgs := len(os.Args)
+
+	// iterate each element in args map
 	for arg, field := range a {
+		skip := false
+		// iterate each arg provided to the application
 		for i, oa := range os.Args {
+			if skip {
+				skip = false
+				continue
+			}
+
 			// check for `--cli-arg=` scenario (where value is specified after =)
 			al := len(arg)
 			if len(oa) > al && oa[0:al] == arg && oa[al] == eq[0] {
@@ -89,7 +101,13 @@ func (s *settings) applyArgs(a map[string]string) {
 					"found arg match %s (field %s): %s\n",
 					arg,
 					field,
-					cleanArgValue(oa[al:]))
+					s.cleanArgValue(oa[al:]))
+				if err := s.setFieldValue(
+					field,
+					s.cleanArgValue(oa[al:]),
+					"Args"); err != nil {
+					return err
+				}
 
 				break
 			}
@@ -100,12 +118,22 @@ func (s *settings) applyArgs(a map[string]string) {
 					"found exact arg match %s (field %s): %s\n",
 					arg,
 					field,
-					cleanArgValue(os.Args[i+1]))
+					s.cleanArgValue(os.Args[i+1]))
+				if err := s.setFieldValue(
+					field,
+					s.cleanArgValue(os.Args[i+1]),
+					"Args"); err != nil {
+					return err
+				}
 
+				// next os.Arg is the value, skip trying to match it
+				skip = true
 				break
 			}
 		}
 	}
+
+	return nil
 }
 
 func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
@@ -119,12 +147,11 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 		// ensure the field exists in the out object
 		if t, ok := s.fieldTypeMap[fieldName]; ok {
 			// we found a match... ensure the type matches
-			if t != reflect.ValueOf(defaultValue).Kind() {
+			if t.Kind() != reflect.ValueOf(defaultValue).Kind() {
 				// type mismatch error
-				return fmt.Errorf(
-					"type mismatch for field %s: expected %v and default value is %v",
+				return SettingsFieldTypeMismatch(
 					fieldName,
-					t,
+					t.Kind(),
 					reflect.ValueOf(defaultValue).Kind())
 			}
 
@@ -137,7 +164,7 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 			}
 
 			// unable to set the value
-			return SettingsFieldSetError(fieldName, t)
+			return SettingsFieldSetError(fieldName, t.Kind())
 		}
 
 		// default field is not in the out struct
@@ -145,6 +172,30 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 	}
 
 	return nil
+}
+
+func (settings) cleanArgValue(v string) string {
+	if len(v) == 0 {
+		return v
+	}
+
+	charCheck := []byte(`='"`)
+
+	for i, b := range charCheck {
+		// look for = as first char and remove it
+		if v[0] == b && i == 0 {
+			v = v[1:]
+			continue
+		}
+
+		// look for quotes (' or " surrounding the value)
+		l := len(v)
+		if v[0] == v[l-1] && v[0] == b {
+			v = v[1 : l-1]
+		}
+	}
+
+	return v
 }
 
 func (s *settings) determineFieldTypes() error {
@@ -223,7 +274,7 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 	// if field is not a struct, store the type
 	if field.Type.Kind() != reflect.Struct {
 		// TODO: do not know how to handle a Ptr in this scenario...
-		s.fieldTypeMap[fieldName] = field.Type.Kind()
+		s.fieldTypeMap[fieldName] = field.Type
 		return
 	}
 
@@ -286,7 +337,7 @@ func (s *settings) searchForArgOverrides(args []string) error {
 			al := len(a)
 			if len(oa) > al && oa[0:al] == a && oa[al] == eq[0] {
 				// we have a match...
-				path = cleanArgValue(oa[al:])
+				path = s.cleanArgValue(oa[al:])
 
 				break
 			}
@@ -294,7 +345,7 @@ func (s *settings) searchForArgOverrides(args []string) error {
 			// check for direct arg match
 			if oa == a && i < totalArgs-1 {
 				// path should be the next argument specified
-				path = cleanArgValue(os.Args[i+1])
+				path = s.cleanArgValue(os.Args[i+1])
 				break
 			}
 		}
@@ -347,6 +398,83 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 	return nil
 }
 
+func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error {
+	// ensure the field exists in the out object
+	if t, ok := s.fieldTypeMap[fieldPath]; ok {
+		// we found a match... ensure the type matches
+		var val interface{}
+
+		switch t.Kind() {
+		case reflect.Array, reflect.Slice:
+			fmt.Printf("need to split value (%s) on delim\n", sVal)
+		case reflect.Bool:
+			pv, err := strconv.ParseBool(sVal)
+			if err != nil {
+				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			}
+			val = pv
+		case reflect.Int:
+			pv, err := strconv.ParseInt(sVal, 0, t.Bits())
+			if err != nil {
+				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			}
+			val = int(pv)
+		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			pv, err := strconv.ParseInt(sVal, 0, t.Bits())
+			if err != nil {
+				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			}
+			val = pv
+		case reflect.Uint:
+			pv, err := strconv.ParseInt(sVal, 0, t.Bits())
+			if err != nil {
+				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			}
+			val = uint(pv)
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			pv, err := strconv.ParseUint(sVal, 0, t.Bits())
+			if err != nil {
+				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			}
+			val = pv
+		case reflect.Float32, reflect.Float64:
+			pv, err := strconv.ParseFloat(sVal, t.Bits())
+			if err != nil {
+				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			}
+			val = pv
+		case reflect.Complex64, reflect.Complex128:
+			pv, err := strconv.ParseComplex(sVal, t.Bits())
+			if err != nil {
+				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			}
+			val = pv
+		case reflect.String:
+			val = sVal
+		default:
+			// chan, func, interface, map, ptr, struct and unsafeptr
+			return SettingsFieldSetError(
+				fieldPath,
+				t.Kind(),
+				errors.New("unsupported field type"))
+		}
+
+		// find the field within the out struct and set it (if we can)
+		v := s.findOutFieldValue(fieldPath)
+		if v.CanSet() {
+			dv := reflect.ValueOf(val)
+			v.Set(dv)
+			return nil
+		}
+
+		// unable to set the value
+		return SettingsFieldSetError(fieldPath, t.Kind())
+	}
+
+	// default field is not in the out struct
+	return SettingsFieldDoesNotExist(ot, fieldPath)
+}
+
 func (s *settings) unmarshalFile(path string, out interface{}) error {
 	t, err := s.determineFileType(path)
 	if err != nil {
@@ -379,28 +507,4 @@ func (s *settings) unmarshalFile(path string, out interface{}) error {
 	}
 
 	return nil
-}
-
-func cleanArgValue(v string) string {
-	if len(v) == 0 {
-		return v
-	}
-
-	charCheck := []byte(`='"`)
-
-	for i, b := range charCheck {
-		// look for = as first char and remove it
-		if v[0] == b && i == 0 {
-			v = v[1:]
-			continue
-		}
-
-		// look for quotes (' or " surrounding the value)
-		l := len(v)
-		if v[0] == v[l-1] && v[0] == b {
-			v = v[1 : l-1]
-		}
-	}
-
-	return v
 }
