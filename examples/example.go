@@ -31,7 +31,7 @@ func main() {
 			"Server.Address": ":8080",
 		}).
 		SetEnvOverride("GO_ENV").
-		SetEnvSearchPaths("./", "./config", "./settings", "./examples").
+		SetEnvSearchPaths("./examples", "./", "./config", "./settings").
 		SetArgsFileOverride("--config-file", "-cf").
 		SetArgsMap(map[string]string{
 			"--data-name": "Data.Name",
