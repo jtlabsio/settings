@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	commaRE     = regexp.MustCompile(`\,\s?`)
 	dotRE       = regexp.MustCompile(`\.`)
 	settingsExt = []string{".yml", ".yaml", ".json"}
 )
@@ -390,16 +391,114 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 	return nil
 }
 
-func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error {
+func (s *settings) setFieldValue(fieldPath string, sVal string, override string) error {
 	// ensure the field exists in the out object
 	if t, ok := s.fieldTypeMap[fieldPath]; ok {
 		// we found a match... ensure the type matches
 		var val interface{}
 
-		// TODO: figure out how to support time.Time
 		switch t.Kind() {
 		case reflect.Array, reflect.Slice:
-			fmt.Printf("need to split value (%s) on delim\n", sVal)
+			sVals := commaRE.Split(sVal, -1)
+			ov := s.findOutFieldValue(fieldPath)
+			st := ov.Type().Elem().Kind()
+			pv := reflect.MakeSlice(reflect.Indirect(ov).Type(), len(sVals), cap(sVals))
+
+			for i, sv := range sVals {
+				switch st {
+				case reflect.Bool:
+					v, err := strconv.ParseBool(sv)
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					pv.Index(i).Set(reflect.ValueOf(v))
+				case reflect.Int:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := int(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Int8:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := int8(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Int16:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := int16(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Int32:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := int32(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Int64:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					pv.Index(i).Set(reflect.ValueOf(v))
+				case reflect.Uint:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := uint(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Uint8:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := uint8(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Uint16:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := uint16(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Uint32:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					iv := uint32(v)
+					pv.Index(i).Set(reflect.ValueOf(iv))
+				case reflect.Uint64:
+					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					pv.Index(i).Set(reflect.ValueOf(v))
+				case reflect.Float32:
+					v, err := strconv.ParseFloat(sv, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					fv := float32(v)
+					pv.Index(i).Set(reflect.ValueOf(fv))
+				case reflect.Float64:
+					v, err := strconv.ParseFloat(sv, ov.Type().Elem().Bits())
+					if err != nil {
+						return SettingsFieldSetError(fieldPath, t.Kind(), err)
+					}
+					pv.Index(i).Set(reflect.ValueOf(v))
+				case reflect.String:
+					pv.Index(i).Set(reflect.ValueOf(sv))
+				}
+			}
+
+			val = pv.Interface()
 		case reflect.Bool:
 			pv, err := strconv.ParseBool(sVal)
 			if err != nil {
@@ -439,6 +538,7 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error
 			if err != nil {
 				return SettingsFieldSetError(fieldPath, t.Kind(), err)
 			}
+
 			switch t.Bits() {
 			case 8:
 				val = uint8(pv)
@@ -454,6 +554,7 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error
 			if err != nil {
 				return SettingsFieldSetError(fieldPath, t.Kind(), err)
 			}
+
 			switch t.Bits() {
 			case 32:
 				val = float32(pv)
@@ -470,6 +571,11 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error
 				errors.New("unsupported field type"))
 		}
 
+		// don't try to set if there's no value to set
+		if reflect.Zero(t) == val || val == nil {
+			return nil
+		}
+
 		// find the field within the out struct and set it (if we can)
 		v := s.findOutFieldValue(fieldPath)
 		if v.CanSet() {
@@ -483,7 +589,7 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error
 	}
 
 	// default field is not in the out struct
-	return SettingsFieldDoesNotExist(ot, fieldPath)
+	return SettingsFieldDoesNotExist(override, fieldPath)
 }
 
 func (s *settings) unmarshalFile(path string, out interface{}) error {

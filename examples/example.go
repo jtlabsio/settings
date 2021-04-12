@@ -34,6 +34,9 @@ type config struct {
 		F32 float32 `yaml:"f32"`
 		F64 float64 `yaml:"f64"`
 	} `yaml:"numbers"`
+	Lists struct {
+		LuckyNumbers []int `yaml:"luckyNumbers"`
+	} `yaml:"lists"`
 }
 
 func main() {
@@ -47,20 +50,21 @@ func main() {
 		SetEnvSearchPaths("./examples", "./", "./config", "./settings").
 		SetArgsFileOverride("--config-file", "-cf").
 		SetArgsMap(map[string]string{
-			"--data-name":       "Data.Name",
-			"--data-host":       "Data.Host",
-			"--data-port":       "Data.Port",
-			"--logging-verbose": "Logging.Verbose",
-			"--num-v8":          "Numbers.V8",
-			"--num-v16":         "Numbers.V16",
-			"--num-v32":         "Numbers.V32",
-			"--num-v64":         "Numbers.V64",
-			"--num-u8":          "Numbers.U8",
-			"--num-u16":         "Numbers.U16",
-			"--num-u32":         "Numbers.U32",
-			"--num-u64":         "Numbers.U64",
-			"--num-f32":         "Numbers.F32",
-			"--num-f64":         "Numbers.F64",
+			"--data-name":           "Data.Name",
+			"--data-host":           "Data.Host",
+			"--data-port":           "Data.Port",
+			"--lists-lucky-numbers": "Lists.LuckyNumbers",
+			"--logging-verbose":     "Logging.Verbose",
+			"--num-v8":              "Numbers.V8",
+			"--num-v16":             "Numbers.V16",
+			"--num-v32":             "Numbers.V32",
+			"--num-v64":             "Numbers.V64",
+			"--num-u8":              "Numbers.U8",
+			"--num-u16":             "Numbers.U16",
+			"--num-u32":             "Numbers.U32",
+			"--num-u64":             "Numbers.U64",
+			"--num-f32":             "Numbers.F32",
+			"--num-f64":             "Numbers.F64",
 		}).
 		SetVarsMap(map[string]string{
 			"DATA_NAME":      "Data.Name",
