@@ -97,11 +97,6 @@ func (s *settings) applyArgs(a map[string]string) error {
 			al := len(arg)
 			if len(oa) > al && oa[0:al] == arg && oa[al] == eq[0] {
 				// we have a match...
-				fmt.Printf(
-					"found arg match %s (field %s): %s\n",
-					arg,
-					field,
-					s.cleanArgValue(oa[al:]))
 				if err := s.setFieldValue(
 					field,
 					s.cleanArgValue(oa[al:]),
@@ -114,11 +109,6 @@ func (s *settings) applyArgs(a map[string]string) error {
 
 			// check for direct arg match
 			if oa == arg && i < totalArgs-1 {
-				fmt.Printf(
-					"found exact arg match %s (field %s): %s\n",
-					arg,
-					field,
-					s.cleanArgValue(os.Args[i+1]))
 				if err := s.setFieldValue(
 					field,
 					s.cleanArgValue(os.Args[i+1]),
@@ -406,6 +396,7 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error
 		// we found a match... ensure the type matches
 		var val interface{}
 
+		// TODO: figure out how to support time.Time
 		switch t.Kind() {
 		case reflect.Array, reflect.Slice:
 			fmt.Printf("need to split value (%s) on delim\n", sVal)
@@ -426,7 +417,17 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error
 			if err != nil {
 				return SettingsFieldSetError(fieldPath, t.Kind(), err)
 			}
-			val = pv
+
+			switch t.Bits() {
+			case 8:
+				val = int8(pv)
+			case 16:
+				val = int16(pv)
+			case 32:
+				val = int32(pv)
+			default:
+				val = pv
+			}
 		case reflect.Uint:
 			pv, err := strconv.ParseInt(sVal, 0, t.Bits())
 			if err != nil {
@@ -438,23 +439,31 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, ot string) error
 			if err != nil {
 				return SettingsFieldSetError(fieldPath, t.Kind(), err)
 			}
-			val = pv
+			switch t.Bits() {
+			case 8:
+				val = uint8(pv)
+			case 16:
+				val = uint16(pv)
+			case 32:
+				val = uint32(pv)
+			default:
+				val = pv
+			}
 		case reflect.Float32, reflect.Float64:
 			pv, err := strconv.ParseFloat(sVal, t.Bits())
 			if err != nil {
 				return SettingsFieldSetError(fieldPath, t.Kind(), err)
 			}
-			val = pv
-		case reflect.Complex64, reflect.Complex128:
-			pv, err := strconv.ParseComplex(sVal, t.Bits())
-			if err != nil {
-				return SettingsFieldSetError(fieldPath, t.Kind(), err)
+			switch t.Bits() {
+			case 32:
+				val = float32(pv)
+			default:
+				val = pv
 			}
-			val = pv
 		case reflect.String:
 			val = sVal
 		default:
-			// chan, func, interface, map, ptr, struct and unsafeptr
+			// complex64, complex128, chan, func, interface, map, ptr, struct and unsafeptr
 			return SettingsFieldSetError(
 				fieldPath,
 				t.Kind(),
