@@ -90,7 +90,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	tests := []struct {
 		name     string
 		args     args
-		expected config
+		expected *config
 		wantErr  bool
 	}{
 		{
@@ -98,24 +98,24 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			args{
 				path: "./tests/test.yaml",
 			},
-			config{
+			&config{
 				Name:    "example",
-				Version: "1.0",
+				Version: "1.1",
 			},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &settings{
+			s := settings{
 				out: &config{},
 			}
 			if err := s.readBaseSettings(tt.args.path); (err != nil) != tt.wantErr {
 				t.Errorf("settings.readBaseSettings() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			o := s.out
+			o := &s.out
 			if !reflect.DeepEqual(tt.expected, s.out) {
-				t.Errorf("setting.readBaseSettings() = %v, want %v", *&(o), tt.expected)
+				t.Errorf("setting.readBaseSettings() = %v, want %v", o, *tt.expected)
 			}
 		})
 	}
