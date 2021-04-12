@@ -35,7 +35,8 @@ type config struct {
 		F64 float64 `yaml:"f64"`
 	} `yaml:"numbers"`
 	Lists struct {
-		LuckyNumbers []int `yaml:"luckyNumbers"`
+		LuckyNumbers []int    `yaml:"luckyNumbers"`
+		Animals      []string `yaml:"animals"`
 	} `yaml:"lists"`
 }
 
@@ -53,6 +54,7 @@ func main() {
 			"--data-name":           "Data.Name",
 			"--data-host":           "Data.Host",
 			"--data-port":           "Data.Port",
+			"--lists-animals":       "Lists.Animals",
 			"--lists-lucky-numbers": "Lists.LuckyNumbers",
 			"--logging-verbose":     "Logging.Verbose",
 			"--num-v8":              "Numbers.V8",

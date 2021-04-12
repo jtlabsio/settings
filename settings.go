@@ -76,6 +76,9 @@ func Gather(opts ReadOptions, out interface{}) error {
 	}
 
 	// apply environment variables
+	if err := s.applyVars(opts.VarsMap); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -121,6 +124,30 @@ func (s *settings) applyArgs(a map[string]string) error {
 				skip = true
 				break
 			}
+		}
+	}
+
+	return nil
+}
+
+func (s *settings) applyVars(v map[string]string) error {
+	if v == nil {
+		return nil
+	}
+
+	// iterate the vars map
+	for evar, fieldPath := range v {
+		// lookup the var from the environment
+		v := os.Getenv(evar)
+
+		// if there is no value, continue on
+		if v == "" {
+			continue
+		}
+
+		// set the value
+		if err := s.setFieldValue(fieldPath, v, "Vars"); err != nil {
+			return err
 		}
 	}
 

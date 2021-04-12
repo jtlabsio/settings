@@ -9,6 +9,12 @@ logging:
   verbose: false
 server:
   address: "0.0.0.0:3080"
+lists:
+  animals:
+    - squirrel
+    - hare
+    - bear
+    - crow
 numbers:
   v8: 1
   v16: 32000
