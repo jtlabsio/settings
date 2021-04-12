@@ -304,6 +304,11 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 }
 
 func (s *settings) readBaseSettings(path string) error {
+	// just return if path is empty
+	if path == "" {
+		return nil
+	}
+
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			// base path doesn't exist

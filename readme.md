@@ -76,7 +76,98 @@ For a more verbose example along with execution instructions, see [examples/exam
 
 ReadOptions are used to instruct the package where to find override values from a base file, a command line override file, an environment override file, command line arguments, or from environment variables.
 
+#### SetArgsFileOverride
 
+When providing a value to this method, one can override the underlying settings via one or more specific files that are provided via command line arguments.
+
+```go
+options := settings.
+  Options().
+  SetArgsFileOverride("./path/to/first-file.yml", "./path/to/another/second-file.json")
+settings.Gather(options, &config)
+```
+
+The `first-file.yml` will be read and applied, and then the `second-file.json` will be read and applied over the top of the first. These files can be partial files with a subset of the fields from the out struct defined as `&config` in the example above if desired.
+
+#### SetArgsMap
+
+The arguments map is used by `Gather` to determine how command line switches can be applied to specific out struct fields.
+
+```go
+options := settings.
+  Options().
+  SetArgsMap(map[string]string{
+    "--switch-to-look-for": "CaseSensitive.Field.Where.Hiearchy.Is.Noted.By.Dot",
+    "--logging-level":      "Logging.Level",
+    "-l":                  "Logging.Level",
+  })
+settings.Gather(options, &config)
+```
+
+Any switches that are provided in the map that do not appear in the list of `os.Args` for the application are effectively ignored. If the desired outcome is to have an alias for a command line argument (i.e. `--logging-level` and `-l` both capable of overriding `Logging.Level`), each value can be independently added to the map. When processing arguments, `--some-switch=value` (notice the `=` character) is processed the same as `--some-switch value` so that the value will properly read and applied in either scenario.
+
+#### SetBasePath
+
+The base path for settings is the initial (yaml or json) file that is loaded to populate the out argument to the gather method. As with the command line override file and with the environment override file, this base settings file is not required to be a complete serialization of the out struct... it can be partially defined if desired. If a file is specified, and the file can't be found or read, the `Gather` method will return a file doesn't exist (i.e. `os.ErrNotExist`) or a `SettingsFileReadError` in the event there is some other read problem.
+
+```go
+options := settings.
+  Options().
+  SetBasePath("./settings.yml")
+settings.Gather(options, &config)
+```
+
+#### SetDefaultsMap
+
+The defaults map is used by settings to apply default values to fields in the out struct. These defaults are applied immediately after the base settings (if provided) are applied.
+
+```go
+options := settings.
+  Options().
+  SetArgsMap(map[string]interface{}{
+    "CaseSensitive.Field.Where.Hiearchy.Is.Noted.By.Dot": true,
+    "Data.Port":                                          27017,
+    "Server.Address":                                     ":8080",
+    "Logging.Level":                                      "trace",
+    "Name":                                               "cool name",
+  })
+settings.Gather(options, &config)
+```
+
+The string value of the map is the field path where hierarchy / depth is noted by the `.` character.
+
+#### SetEnvOverride and SetEnvSearchPaths
+
+Environment override and search paths can be provided to the package to enable virtually named environment level overrides at a partial or complete configuration level.
+
+```go
+options := settings.
+  Options().
+  SetEnvSearchPaths("./", "./settings"). // look for files in "./" and "./settings
+  SetEnvOverride("GO_ENV", "GO_ENVIRONMENT")
+settings.Gather(options, &config)
+```
+
+In the above example, if a value is set in the `GO_ENV` or `GO_ENVIRONMENT` variables for the application, the value will be used in a search for matching `yaml` or `json` files that exist in the paths provided as search paths (in the above example, `./` and `./settings`). To illustrate:
+
+```bash
+GO_ENV=testing go run cmd/app.go
+```
+
+The `GO_ENV` value is `testing`. Combined with the code snippet above, the app would search for the following files:
+
+* `./testing.yml`
+* `./testing.yaml`
+* `./testing.json`
+* `./settings/testing.yml`
+* `./settings/testing.yaml`
+* `./settings/testing.json`
+
+Upon finding a file that matches (the first match), that file is read and the fields defined therein are applied to the out struct.
+
+#### SetVarsMap
+
+Similar to the Args map, the Vars map can be used to override individual fields with values defined as environment variables.
 
 ## Q & A
 

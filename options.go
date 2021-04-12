@@ -19,6 +19,14 @@ func Options() ReadOptions {
 	return ReadOptions{}
 }
 
+/*
+func (ro ReadOptions) Defaults() ReadOptions {
+	return ReadOptions{
+
+	}
+}
+//*/
+
 // SetArgsFileOverride instructs the settings package on where to look
 // for any potential override file locations that are provided as command
 // line arguments
