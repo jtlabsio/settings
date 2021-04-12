@@ -338,6 +338,8 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 					// unmarshal the environment override over the base
 					if err := s.readOverrideFile(spf); err != nil {
 						return err
+					} else {
+						return nil
 					}
 				}
 			}
