@@ -354,6 +354,8 @@ func (s *settings) searchForArgOverrides(args []string) error {
 		if path != "" {
 			if err := s.readOverrideFile(path); err != nil {
 				return err
+			} else {
+				return nil
 			}
 		}
 	}
