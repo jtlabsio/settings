@@ -1,3 +1,21 @@
+// package main in the example can be used to demo the settings
+// parsing from command line, environment variables, specified
+// override files and environment overrides. A few example commands
+// to try:
+//
+// For an environment override (partial settings override)
+// $ GO_ENV=example go run examples/example.go
+//
+// For a argument provided file override (partial settings override)
+// $ go run examples/example.go --config-file examples/config-override.yml
+//
+// For an environment override (partial settings override) with additional
+// env var settings
+// $ GO_ENV=example LISTS_ANIMALS=cat,dog,bear,hare go run examples/example.go
+//
+// Try mixing and matching ENV VAR and command line arguments to observe the
+// order of priority
+// $ GO_ENV=example DATA_PORT=27019 go run examples/example.go --data-port 27018
 package main
 
 import (
@@ -7,6 +25,8 @@ import (
 	"go.jtlabs.io/settings"
 )
 
+// this is a silly struct for storing config / settings
+// with example fields for demonstration purposes
 type config struct {
 	Data struct {
 		Name string `yaml:"name"`
@@ -57,15 +77,7 @@ func main() {
 			"--lists-animals":       "Lists.Animals",
 			"--lists-lucky-numbers": "Lists.LuckyNumbers",
 			"--logging-verbose":     "Logging.Verbose",
-			"--num-v8":              "Numbers.V8",
-			"--num-v16":             "Numbers.V16",
 			"--num-v32":             "Numbers.V32",
-			"--num-v64":             "Numbers.V64",
-			"--num-u8":              "Numbers.U8",
-			"--num-u16":             "Numbers.U16",
-			"--num-u32":             "Numbers.U32",
-			"--num-u64":             "Numbers.U64",
-			"--num-f32":             "Numbers.F32",
 			"--num-f64":             "Numbers.F64",
 		}).
 		SetVarsMap(map[string]string{
@@ -73,6 +85,7 @@ func main() {
 			"DATA_HOST":      "Data.Host",
 			"DATA_PORT":      "Data.Port",
 			"SERVER_ADDRESS": "Server.Address",
+			"LISTS_ANIMALS":  "Lists.Animals",
 		})
 
 	// read in configuration from all sources

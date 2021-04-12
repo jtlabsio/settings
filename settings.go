@@ -409,7 +409,7 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 						return err
 					}
 
-					return nil
+					break
 				}
 			}
 		}
