@@ -63,7 +63,7 @@ type config struct {
 func main() {
 	var c config
 	options := settings.Options().
-		SetBasePath("./examples/defaults.yaml").
+		SetBasePath("./examples/defaultss.yaml").
 		SetDefaultsMap(map[string]interface{}{
 			"Server.Address": ":8080",
 		}).

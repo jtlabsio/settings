@@ -86,7 +86,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	type args struct {
 		path string
 	}
-	Options().SetBasePath("./tests/test.yaml")
+	// Options().SetBasePath("./tests/test.yaml")
 	tests := []struct {
 		name     string
 		args     args
@@ -104,6 +104,24 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"should return an error = <nil> if path is blank",
+			args{path: ""},
+			&config{},
+			false,
+		},
+		{
+			// change wanterr to check match with SettingsFileReadError for line 323 coverage
+			"should return os.ErrNotexist if bad path",
+			args{
+				path: "./not/found.yml",
+			},
+			&config{},
+			true,
+		},
+		{
+			// add unmarshal file return error check for line 327
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -115,7 +133,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			}
 			o := &s.out
 			if !reflect.DeepEqual(tt.expected, s.out) {
-				t.Errorf("setting.readBaseSettings() = %v, want %v", o, *tt.expected)
+				t.Errorf("settings.readBaseSettings() = %v, want %v", o, tt.expected)
 			}
 		})
 	}
