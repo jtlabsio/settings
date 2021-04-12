@@ -395,7 +395,9 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 		if envName != "" {
 			// now iterate search paths
 			for _, prefix := range searchPaths {
+				found := false
 				sp := path.Join(prefix, envName)
+
 				for _, ext := range settingsExt {
 					spf := fmt.Sprintf("%s%s", sp, ext)
 
@@ -409,6 +411,11 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 						return err
 					}
 
+					found = true
+					break
+				}
+
+				if found {
 					break
 				}
 			}
