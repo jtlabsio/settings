@@ -219,7 +219,7 @@ func (settings) cleanArgValue(v string) string {
 func (s *settings) determineFieldTypes() error {
 	// if an out interface has somehow become nil, assign a new one
 	if s.out == nil {
-		s.out = new(interface{})
+		return SettingsOutCannotBeNil()
 	}
 	ct := reflect.TypeOf(s.out)
 

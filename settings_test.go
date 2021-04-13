@@ -2,6 +2,7 @@ package settings
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -84,10 +85,11 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	}
 	// Options().SetBasePath("./tests/test.yaml")
 	tests := []struct {
-		name     string
-		args     args
-		expected *config
-		wantErr  bool
+		name         string
+		args         args
+		expected     *config
+		wantErr      bool
+		errorMessage string
 	}{
 		{
 			"should set name and version",
@@ -99,12 +101,14 @@ func Test_settings_readBaseSettings(t *testing.T) {
 				Version: "1.1",
 			},
 			false,
+			"",
 		},
 		{
 			"should return an error = <nil> if path is blank",
 			args{path: ""},
 			&config{},
 			false,
+			"",
 		},
 		{
 			// change wanterr to check match with SettingsFileReadError for line 323 coverage
@@ -114,15 +118,17 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			},
 			&config{},
 			true,
+			"no such file",
 		},
 		{
 			// add unmarshal file return error check for line 327
-			"should return os.ErrNotexist if bad path",
+			"should return invalid character on badly formatted file",
 			args{
 				path: "./tests/broken.json",
 			},
 			&config{},
 			true,
+			"invalid character",
 		},
 	}
 	for _, tt := range tests {
@@ -136,6 +142,13 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			o := &s.out
 			if !reflect.DeepEqual(tt.expected, s.out) {
 				t.Errorf("settings.readBaseSettings() = %v, want %v", o, tt.expected)
+			}
+			err := s.readBaseSettings(tt.args.path)
+			terr := tt.errorMessage
+			tlen := len(terr)
+
+			if tlen > 0 && !strings.Contains(err.Error(), terr) {
+				t.Errorf("settings.readBaseSettings() = %v, want %v", err.Error(), tt.errorMessage)
 			}
 		})
 	}

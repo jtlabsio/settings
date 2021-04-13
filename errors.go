@@ -66,6 +66,12 @@ func SettingsFileTypeError(path string, ext string) SettingsError {
 	}
 }
 
+func SettingsOutCannotBeNil() SettingsError {
+	return SettingsError{
+		Message: fmt.Sprint("out cannot be nil"),
+	}
+}
+
 // SettingsTypeDiscoveryError occurs when the out value provided to settings.Gather is not a struct
 func SettingsTypeDiscoveryError(t reflect.Kind) SettingsError {
 	return SettingsError{
