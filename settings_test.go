@@ -86,6 +86,12 @@ func Test_settings_determineFieldTypes(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"should error when not a struct",
+			"not a struct",
+			map[string]reflect.Type{},
+			true,
+		},
+		{
 			"should properly parse fields",
 			struct {
 				Name   string

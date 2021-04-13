@@ -295,7 +295,6 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 
 	// if field is not a struct, store the type
 	if field.Type.Kind() != reflect.Struct {
-		// TODO: do not know how to handle a Ptr in this scenario...
 		s.fieldTypeMap[fieldName] = field.Type
 		return
 	}
