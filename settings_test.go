@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"os"
 	"reflect"
 	"testing"
 )
@@ -73,6 +74,62 @@ func TestGather(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Gather(tt.args.opts, tt.args.out); (err != nil) != tt.wantErr {
 				t.Errorf("Gather() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_settings_applyArgs(t *testing.T) {
+	type testConfig struct {
+		Name string
+	}
+	type fields struct {
+		fieldTypeMap map[string]reflect.Type
+		out          interface{}
+	}
+	type args struct {
+		a map[string]string
+	}
+	tests := []struct {
+		name    string
+		osArgs  []string
+		fields  fields
+		args    args
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			"should properly apply command line arguments",
+			[]string{"--name", "test name"},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name": reflect.TypeOf(""),
+				},
+				out: &testConfig{},
+			},
+			args{
+				a: map[string]string{
+					"--name": "Name",
+				},
+			},
+			&testConfig{
+				Name: "test name",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		os.Args = tt.osArgs
+		t.Run(tt.name, func(t *testing.T) {
+			s := &settings{
+				fieldTypeMap: tt.fields.fieldTypeMap,
+				out:          tt.fields.out,
+			}
+			if err := s.applyArgs(tt.args.a); (err != nil) != tt.wantErr {
+				t.Errorf("settings.applyArgs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(s.out, tt.want) {
+				t.Errorf("settings.applyArgs() = %v, want %v", s.out, tt.want)
 			}
 		})
 	}
@@ -194,10 +251,10 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	}
 	// Options().SetBasePath("./tests/test.yaml")
 	tests := []struct {
-		name     string
-		args     args
-		expected *config
-		wantErr  bool
+		name    string
+		args    args
+		want    *config
+		wantErr bool
 	}{
 		{
 			"should set name and version",
@@ -243,9 +300,8 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			if err := s.readBaseSettings(tt.args.path); (err != nil) != tt.wantErr {
 				t.Errorf("settings.readBaseSettings() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			o := &s.out
-			if !reflect.DeepEqual(tt.expected, s.out) {
-				t.Errorf("settings.readBaseSettings() = %v, want %v", o, tt.expected)
+			if !reflect.DeepEqual(s.out, tt.want) {
+				t.Errorf("settings.readBaseSettings() = %v, want %v", s.out, tt.want)
 			}
 		})
 	}
