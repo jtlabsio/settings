@@ -66,9 +66,10 @@ func SettingsFileTypeError(path string, ext string) SettingsError {
 	}
 }
 
+// SettingsOutCannotBeNil occurs when the out field in the settings struct is set to nil, intentionally or otherwise
 func SettingsOutCannotBeNil() SettingsError {
 	return SettingsError{
-		Message: fmt.Sprint("out cannot be nil"),
+		Message: "out cannot be nil",
 	}
 }
 
