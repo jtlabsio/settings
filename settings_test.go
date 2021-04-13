@@ -136,6 +136,57 @@ func Test_settings_applyArgs(t *testing.T) {
 	}
 }
 
+func Test_settings_applyVars(t *testing.T) {
+	type testConfig struct {
+		Name string
+	}
+	type fields struct {
+		fieldTypeMap map[string]reflect.Type
+		out          interface{}
+	}
+	type args struct {
+		v map[string]string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			"should apply environment override to struct",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name": reflect.TypeOf(""),
+				},
+				out: &testConfig{},
+			},
+			args{
+				v: map[string]string{
+					"Name": "vars name",
+				},
+			},
+			&testConfig{
+				Name: "vars name",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		os.Setenv("GO_ENV", "simple")
+		t.Run(tt.name, func(t *testing.T) {
+			s := &settings{
+				fieldTypeMap: tt.fields.fieldTypeMap,
+				out:          tt.fields.out,
+			}
+			if err := s.applyVars(tt.args.v); (err != nil) != tt.wantErr {
+				t.Errorf("settings.applyVars() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func Test_settings_determineFieldTypes(t *testing.T) {
 	tests := []struct {
 		name    string
