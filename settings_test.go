@@ -133,12 +133,18 @@ func Test_settings_applyArgs(t *testing.T) {
 				t.Errorf("settings.applyArgs() = %v, want %v", s.out, tt.want)
 			}
 		})
+
+		// reset the args
+		os.Args = []string{}
 	}
 }
 
 func Test_settings_applyVars(t *testing.T) {
 	type testConfig struct {
-		Name string
+		Name   string
+		Nested struct {
+			Count int
+		}
 	}
 	type fields struct {
 		fieldTypeMap map[string]reflect.Type
@@ -151,6 +157,7 @@ func Test_settings_applyVars(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
+		evars   map[string]string
 		want    interface{}
 		wantErr bool
 	}{
@@ -158,23 +165,34 @@ func Test_settings_applyVars(t *testing.T) {
 			"should apply environment override to struct",
 			fields{
 				fieldTypeMap: map[string]reflect.Type{
-					"Name": reflect.TypeOf(""),
+					"Name":         reflect.TypeOf(""),
+					"Nested.Count": reflect.TypeOf(1),
 				},
 				out: &testConfig{},
 			},
 			args{
 				v: map[string]string{
-					"Name": "vars name",
+					"NAME":         "Name",
+					"NESTED_COUNT": "Nested.Count",
 				},
 			},
+			map[string]string{
+				"NAME":         "testing name assignment",
+				"NESTED_COUNT": "10",
+			},
 			&testConfig{
-				Name: "vars name",
+				Name:   "testing name assignment",
+				Nested: struct{ Count int }{10},
 			},
 			false,
 		},
 	}
 	for _, tt := range tests {
-		os.Setenv("GO_ENV", "simple")
+		// set the environment test values
+		for ev, val := range tt.evars {
+			os.Setenv(ev, val)
+		}
+
 		t.Run(tt.name, func(t *testing.T) {
 			s := &settings{
 				fieldTypeMap: tt.fields.fieldTypeMap,
@@ -183,7 +201,13 @@ func Test_settings_applyVars(t *testing.T) {
 			if err := s.applyVars(tt.args.v); (err != nil) != tt.wantErr {
 				t.Errorf("settings.applyVars() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			if !reflect.DeepEqual(s.out, tt.want) {
+				t.Errorf("settings.applyVars() = %v, want %v", s.out, tt.want)
+			}
 		})
+
+		// clear the environment
+		os.Clearenv()
 	}
 }
 
