@@ -719,6 +719,25 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			false,
 		},
 		{
+			"should not apply override from command line when no search paths are defined",
+			map[string]string{
+				"GO_ENV": "simple",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{},
+				[]string{"GO_ENV"},
+			},
+			&testConfig{},
+			false,
+		},
+		{
 			"should apply override from environment override",
 			map[string]string{
 				"GO_ENV": "simple",
