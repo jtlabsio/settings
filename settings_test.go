@@ -6,20 +6,15 @@ import (
 )
 
 type config struct {
-	Data struct {
-		Name string `yaml:"name"`
-		Host string `yaml:"host"`
-		Port int    `yaml:"port"`
-	} `yaml:"data"`
-	Logging struct {
-		Level   string `yaml:"level"`
-		Verbose bool   `yaml:"verbose"`
-	} `yaml:"logging"`
-	Name   string `yaml:"name"`
-	Server struct {
-		Address string `yaml:"address"`
-	} `yaml:"server"`
+	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
+	Nested  struct {
+		Name        string `yaml:"name"`
+		Number      int    `yaml:"number"`
+		NestedAgain struct {
+			Desc string `yaml:"desc"`
+		} `yaml:"nestedAgain"`
+	} `yaml:"nested"`
 	Numbers struct {
 		V8  int8    `yaml:"v8"`
 		V16 int16   `yaml:"v16"`
@@ -33,8 +28,9 @@ type config struct {
 		F64 float64 `yaml:"f64"`
 	} `yaml:"numbers"`
 	Lists struct {
-		LuckyNumbers []int    `yaml:"luckyNumbers"`
-		Animals      []string `yaml:"animals"`
+		LuckyNumbers []int     `yaml:"luckyNumbers"`
+		Animals      []string  `yaml:"animals"`
+		Dollars      []float32 `yaml:"dollars"`
 	} `yaml:"lists"`
 }
 
@@ -96,7 +92,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 		{
 			"should set name and version",
 			args{
-				path: "./tests/test.yaml",
+				path: "./tests/simple.yaml",
 			},
 			&config{
 				Name:    "example",
@@ -121,6 +117,12 @@ func Test_settings_readBaseSettings(t *testing.T) {
 		},
 		{
 			// add unmarshal file return error check for line 327
+			"should return os.ErrNotexist if bad path",
+			args{
+				path: "./tests/broken.json",
+			},
+			&config{},
+			true,
 		},
 	}
 	for _, tt := range tests {
