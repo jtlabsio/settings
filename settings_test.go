@@ -139,6 +139,102 @@ func Test_settings_applyArgs(t *testing.T) {
 	}
 }
 
+func Test_settings_applyDefaultsMap(t *testing.T) {
+	type testConfig struct {
+		Name   string
+		Nested struct {
+			Count int
+		}
+	}
+	type fields struct {
+		fieldTypeMap map[string]reflect.Type
+		out          interface{}
+	}
+	type args struct {
+		dm map[string]interface{}
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			"should apply defaults map overrides to struct",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name":         reflect.TypeOf(""),
+					"Nested.Count": reflect.TypeOf(1),
+				},
+				out: &testConfig{},
+			},
+			args{
+				dm: map[string]interface{}{
+					"Name":         "default name",
+					"Nested.Count": 10,
+				},
+			},
+			&testConfig{
+				Name:   "default name",
+				Nested: struct{ Count int }{10},
+			},
+			false,
+		},
+		{
+			"should error if the default value type does not match",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name":         reflect.TypeOf(""),
+					"Nested.Count": reflect.TypeOf(1),
+				},
+				out: &testConfig{},
+			},
+			args{
+				dm: map[string]interface{}{
+					"Name":         "default name",
+					"Nested.Count": "10",
+				},
+			},
+			&testConfig{},
+			true,
+		},
+		{
+			"should error if the default value is not in the destination struct",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name":         reflect.TypeOf(""),
+					"Nested.Count": reflect.TypeOf(1),
+				},
+				out: &testConfig{},
+			},
+			args{
+				dm: map[string]interface{}{
+					"Name":         "default name",
+					"Nested.Count": 10,
+					"Random.Field": []string{"this", "is", "random"},
+				},
+			},
+			&testConfig{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &settings{
+				fieldTypeMap: tt.fields.fieldTypeMap,
+				out:          tt.fields.out,
+			}
+			if err := s.applyDefaultsMap(tt.args.dm); (err != nil) != tt.wantErr {
+				t.Errorf("settings.applyDefaultsMap() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(s.out, tt.want) {
+				t.Errorf("settings.applyDefaultsMap() = %v, want %v", s.out, tt.want)
+			}
+		})
+	}
+}
+
 func Test_settings_applyVars(t *testing.T) {
 	type testConfig struct {
 		Name   string
@@ -208,6 +304,68 @@ func Test_settings_applyVars(t *testing.T) {
 
 		// clear the environment
 		os.Clearenv()
+	}
+}
+
+func Test_settings_cleanArgValue(t *testing.T) {
+	type args struct {
+		v string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			"should strip leading =",
+			args{
+				"=value",
+			},
+			"value",
+		},
+		{
+			"should strip surrounding \"",
+			args{
+				"\"value\"",
+			},
+			"value",
+		},
+		{
+			"should strip surrounding '",
+			args{
+				"'value'",
+			},
+			"value",
+		},
+		{
+			"should strip both equal and quotes",
+			args{
+				"=\"value\"",
+			},
+			"value",
+		},
+		{
+			"should not remove equal in the middle...",
+			args{
+				"value = value",
+			},
+			"value = value",
+		},
+		{
+			"should not remove quote in the middle...",
+			args{
+				"value \"value\" value",
+			},
+			"value \"value\" value",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := settings{}
+			if got := s.cleanArgValue(tt.args.v); got != tt.want {
+				t.Errorf("settings.cleanArgValue() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

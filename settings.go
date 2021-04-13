@@ -160,33 +160,53 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 		return nil
 	}
 
-	// iterate the defaults and apply them (as appropriate)
-	for fieldName, defaultValue := range d {
-		// ensure the field exists in the out object
+	a := []struct {
+		defVal    interface{}
+		fieldName string
+		fieldVal  reflect.Value
+	}{}
+
+	// validate each default value type before setting
+	for fieldName, defVal := range d {
 		if t, ok := s.fieldTypeMap[fieldName]; ok {
-			// we found a match... ensure the type matches
-			if t.Kind() != reflect.ValueOf(defaultValue).Kind() {
+			if t.Kind() != reflect.ValueOf(defVal).Kind() {
 				// type mismatch error
 				return SettingsFieldTypeMismatch(
 					fieldName,
 					t.Kind(),
-					reflect.ValueOf(defaultValue).Kind())
+					reflect.ValueOf(defVal).Kind())
 			}
 
-			// find the field within the out struct and set it (if we can)
-			v := s.findOutFieldValue(fieldName)
-			if v.CanSet() {
-				dv := reflect.ValueOf(defaultValue)
-				v.Set(dv)
-				continue
+			fieldVal := s.findOutFieldValue(fieldName)
+
+			if !fieldVal.CanSet() {
+				// unable to set the value
+				return SettingsFieldSetError(fieldName, t.Kind())
 			}
 
-			// unable to set the value
-			return SettingsFieldSetError(fieldName, t.Kind())
+			a = append(
+				a,
+				struct {
+					defVal    interface{}
+					fieldName string
+					fieldVal  reflect.Value
+				}{
+					defVal,
+					fieldName,
+					fieldVal,
+				})
+
+			continue
 		}
 
 		// default field is not in the out struct
 		return SettingsFieldDoesNotExist("DefaultsMap", fieldName)
+	}
+
+	// iterate the default to apply and apply them
+	for _, aa := range a {
+		dv := reflect.ValueOf(aa.defVal)
+		aa.fieldVal.Set(dv)
 	}
 
 	return nil

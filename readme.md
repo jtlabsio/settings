@@ -99,7 +99,7 @@ options := settings.
   SetArgsMap(map[string]string{
     "--switch-to-look-for": "CaseSensitive.Field.Where.Hiearchy.Is.Noted.By.Dot",
     "--logging-level":      "Logging.Level",
-    "-l":                  "Logging.Level",
+    "-l":                   "Logging.Level",
   })
 settings.Gather(options, &config)
 ```
