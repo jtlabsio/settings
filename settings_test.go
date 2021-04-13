@@ -118,6 +118,25 @@ func Test_settings_applyArgs(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"should properly apply command line arguments (one arg with =)",
+			[]string{"--name=test name"},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name": reflect.TypeOf(""),
+				},
+				out: &testConfig{},
+			},
+			args{
+				a: map[string]string{
+					"--name": "Name",
+				},
+			},
+			&testConfig{
+				Name: "test name",
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		os.Args = tt.osArgs
