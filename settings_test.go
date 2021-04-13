@@ -78,6 +78,110 @@ func TestGather(t *testing.T) {
 	}
 }
 
+func Test_settings_determineFieldTypes(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       interface{}
+		want    map[string]reflect.Type
+		wantErr bool
+	}{
+		{
+			"should properly parse fields",
+			struct {
+				Name   string
+				Truthy bool
+				Age    int
+				Nested struct {
+					Birthday string
+				}
+			}{},
+			map[string]reflect.Type{
+				"Age":             reflect.TypeOf(1),
+				"Name":            reflect.TypeOf(""),
+				"Nested.Birthday": reflect.TypeOf(""),
+				"Truthy":          reflect.TypeOf(true),
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &settings{
+				fieldTypeMap: map[string]reflect.Type{},
+				out:          tt.s,
+			}
+			err := s.determineFieldTypes()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("settings.determineFileType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(s.fieldTypeMap, tt.want) {
+				t.Errorf("settings.determineFieldTypes() = %v, want %v", s.fieldTypeMap, tt.want)
+			}
+		})
+	}
+}
+
+func Test_settings_determineFileType(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			"should properly detect json",
+			args{
+				path: "./config.json",
+			},
+			"json",
+			false,
+		},
+		{
+			"should properly detect yml",
+			args{
+				path: "./config.yml",
+			},
+			"yaml",
+			false,
+		},
+		{
+			"should properly detect yaml",
+			args{
+				path: "./config.yaml",
+			},
+			"yaml",
+			false,
+		},
+		{
+			"should error when unsupported",
+			args{
+				path: "./config.toml",
+			},
+			"",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &settings{
+				out: &config{},
+			}
+			got, err := s.determineFileType(tt.args.path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("settings.determineFileType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("settings.determineFileType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_settings_readBaseSettings(t *testing.T) {
 	type args struct {
 		path string
@@ -136,41 +240,6 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			o := &s.out
 			if !reflect.DeepEqual(tt.expected, s.out) {
 				t.Errorf("settings.readBaseSettings() = %v, want %v", o, tt.expected)
-			}
-		})
-	}
-}
-
-func Test_settings_determineFileType(t *testing.T) {
-	type fields struct {
-		fieldTypeMap map[string]reflect.Type
-		out          interface{}
-	}
-	type args struct {
-		path string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &settings{
-				fieldTypeMap: tt.fields.fieldTypeMap,
-				out:          tt.fields.out,
-			}
-			got, err := s.determineFileType(tt.args.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("settings.determineFileType() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("settings.determineFileType() = %v, want %v", got, tt.want)
 			}
 		})
 	}
