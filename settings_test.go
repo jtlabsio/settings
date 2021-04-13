@@ -536,20 +536,269 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			s := settings{
 				out: &config{},
 			}
-			if err := s.readBaseSettings(tt.args.path); (err != nil) != tt.wantErr {
-				t.Errorf("settings.readBaseSettings() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.readBaseSettings(tt.args.path); err != nil {
+				if !tt.wantErr {
+					t.Errorf("settings.readBaseSettings() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if !strings.Contains(err.Error(), tt.errorMessage) {
+					t.Errorf("settings.readBaseSettings() = %v, want %v", err.Error(), tt.errorMessage)
+				}
 			}
-
 			if !reflect.DeepEqual(s.out, tt.want) {
 				t.Errorf("settings.readBaseSettings() = %v, want %v", s.out, tt.want)
 			}
-			err := s.readBaseSettings(tt.args.path)
-			terr := tt.errorMessage
-			tlen := len(terr)
+		})
+	}
+}
 
-			if tlen > 0 && !strings.Contains(err.Error(), terr) {
-				t.Errorf("settings.readBaseSettings() = %v, want %v", err.Error(), tt.errorMessage)
+func Test_settings_searchForArgOverrides(t *testing.T) {
+	type testConfig struct {
+		Name    string `yaml:"name"`
+		Version string `yaml:"version"`
+	}
+	type fields struct {
+		fieldTypeMap map[string]reflect.Type
+		out          interface{}
+	}
+	type args struct {
+		args []string
+	}
+	tests := []struct {
+		name    string
+		osArgs  []string
+		fields  fields
+		args    args
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			"should not apply override from command line when no args are set to be read",
+			[]string{"--config-file", "./tests/simple.yaml"},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{},
+			},
+			&testConfig{},
+			false,
+		},
+		{
+			"should apply override from command line args",
+			[]string{"--config-file", "./tests/simple.yaml"},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"--config-file"},
+			},
+			&testConfig{
+				Name:    "example",
+				Version: "1.1",
+			},
+			false,
+		},
+		{
+			"should apply override from command line arg (one arg with =)",
+			[]string{"--config-file=./tests/simple.yaml"},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"--config-file"},
+			},
+			&testConfig{
+				Name:    "example",
+				Version: "1.1",
+			},
+			false,
+		},
+		{
+			"should error when there is a problem reading the file",
+			[]string{"--config-file", "./tests/broken.json"},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"--config-file"},
+			},
+			&testConfig{},
+			true,
+		},
+		{
+			"should error when file does not exist",
+			[]string{"--config-file", "./not/exists.yml"},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"--config-file"},
+			},
+			&testConfig{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		os.Args = tt.osArgs
+
+		t.Run(tt.name, func(t *testing.T) {
+			s := &settings{
+				fieldTypeMap: tt.fields.fieldTypeMap,
+				out:          tt.fields.out,
+			}
+			if err := s.searchForArgOverrides(tt.args.args); (err != nil) != tt.wantErr {
+				t.Errorf("settings.searchForArgOverrides() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(s.out, tt.want) {
+				t.Errorf("settings.searchForArgOverrides() = %v, want %v", s.out, tt.want)
 			}
 		})
+
+		os.Args = []string{}
+	}
+}
+
+func Test_settings_searchForEnvOverrides(t *testing.T) {
+	type testConfig struct {
+		Name    string `yaml:"name"`
+		Version string `yaml:"version"`
+	}
+	type fields struct {
+		fieldTypeMap map[string]reflect.Type
+		out          interface{}
+	}
+	type args struct {
+		searchPaths []string
+		vars        []string
+	}
+	tests := []struct {
+		name    string
+		env     map[string]string
+		fields  fields
+		args    args
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			"should not apply override from command line when no vars are set to be read",
+			map[string]string{
+				"GO_ENV": "simple",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"./tests"},
+				[]string{},
+			},
+			&testConfig{},
+			false,
+		},
+		{
+			"should apply override from environment override",
+			map[string]string{
+				"GO_ENV": "simple",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"./tests"},
+				[]string{"GO_ENV"},
+			},
+			&testConfig{
+				Name:    "example",
+				Version: "1.1",
+			},
+			false,
+		},
+		{
+			"should error when there is a problem reading the file",
+			map[string]string{
+				"GO_ENV": "broken",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"./tests"},
+				[]string{"GO_ENV"},
+			},
+			&testConfig{},
+			true,
+		},
+		{
+			"should not error when file does not exist",
+			map[string]string{
+				"GO_ENV": "no-environment",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"./tests"},
+				[]string{"GO_ENV"},
+			},
+			&testConfig{},
+			false,
+		},
+	}
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+			// set environment variables
+			for ev, val := range tt.env {
+				os.Setenv(ev, val)
+			}
+
+			s := &settings{
+				fieldTypeMap: tt.fields.fieldTypeMap,
+				out:          tt.fields.out,
+			}
+			if err := s.searchForEnvOverrides(tt.args.vars, tt.args.searchPaths); (err != nil) != tt.wantErr {
+				t.Errorf("settings.searchForEnvOverrides() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(s.out, tt.want) {
+				t.Errorf("settings.searchForEnvOverrides() = %v, want %v", s.out, tt.want)
+			}
+		})
+
+		os.Clearenv()
 	}
 }
