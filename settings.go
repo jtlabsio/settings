@@ -89,14 +89,8 @@ func (s *settings) applyArgs(a map[string]string) error {
 
 	// iterate each element in args map
 	for arg, field := range a {
-		skip := false
 		// iterate each arg provided to the application
 		for i, oa := range os.Args {
-			if skip {
-				skip = false
-				continue
-			}
-
 			// check for `--cli-arg=` scenario (where value is specified after =)
 			al := len(arg)
 			if len(oa) > al && oa[0:al] == arg && oa[al] == eq[0] {
@@ -121,7 +115,6 @@ func (s *settings) applyArgs(a map[string]string) error {
 				}
 
 				// next os.Arg is the value, skip trying to match it
-				skip = true
 				break
 			}
 		}

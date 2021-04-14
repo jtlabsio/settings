@@ -134,6 +134,23 @@ func Test_settings_applyArgs(t *testing.T) {
 			false,
 		},
 		{
+			"should gracefully handle when not enough arguments are provided",
+			[]string{"--name"},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name": reflect.TypeOf(""),
+				},
+				out: &testConfig{},
+			},
+			args{
+				a: map[string]string{
+					"--name": "Name",
+				},
+			},
+			&testConfig{},
+			false,
+		},
+		{
 			"should properly apply command line arguments (one arg with =)",
 			[]string{"--name=test name"},
 			fields{
@@ -160,7 +177,7 @@ func Test_settings_applyArgs(t *testing.T) {
 				"-i16=-100",
 				"-i32=-1000",
 				"-i64=-10000",
-				"-u=1",
+				"-u", "1",
 				"-u8=10",
 				"-u16=100",
 				"-u32=1000",
