@@ -11,6 +11,7 @@ type verboseConfig struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
 	Nested  struct {
+		Bool        bool
 		Name        string
 		Number      int
 		NestedAgain struct {
@@ -32,6 +33,7 @@ type verboseConfig struct {
 		F64 float64
 	}
 	Lists struct {
+		B   []bool
 		I   []int
 		I8  []int8
 		I16 []int16
@@ -45,6 +47,7 @@ type verboseConfig struct {
 		F32 []float32
 		F64 []float64
 		S   []string
+		T   []struct{}
 	}
 }
 
@@ -232,6 +235,7 @@ func Test_settings_applyArgs(t *testing.T) {
 		{
 			"should properly handle slice string value conversion",
 			[]string{
+				"-b=true,false",
 				"-i=-1",
 				"-i8=-10",
 				"-i16=-100",
@@ -244,9 +248,11 @@ func Test_settings_applyArgs(t *testing.T) {
 				"-u64=10000",
 				"-f32=10.10",
 				"-f64=100.100",
+				"-s=testing,a,string,array",
 			},
 			fields{
 				fieldTypeMap: map[string]reflect.Type{
+					"Lists.B":   reflect.TypeOf([]bool{true}),
 					"Lists.I":   reflect.TypeOf([]int{1}),
 					"Lists.I8":  reflect.TypeOf([]int8{1}),
 					"Lists.I16": reflect.TypeOf([]int16{1}),
@@ -259,11 +265,13 @@ func Test_settings_applyArgs(t *testing.T) {
 					"Lists.U64": reflect.TypeOf([]uint64{1}),
 					"Lists.F32": reflect.TypeOf([]float32{1.1}),
 					"Lists.F64": reflect.TypeOf([]float64{1.1}),
+					"Lists.S":   reflect.TypeOf([]string{""}),
 				},
 				out: &verboseConfig{},
 			},
 			args{
 				map[string]string{
+					"-b":   "Lists.B",
 					"-i":   "Lists.I",
 					"-i8":  "Lists.I8",
 					"-i16": "Lists.I16",
@@ -276,10 +284,12 @@ func Test_settings_applyArgs(t *testing.T) {
 					"-u64": "Lists.U64",
 					"-f32": "Lists.F32",
 					"-f64": "Lists.F64",
+					"-s":   "Lists.S",
 				},
 			},
 			&verboseConfig{
 				Lists: struct {
+					B   []bool
 					I   []int
 					I8  []int8
 					I16 []int16
@@ -293,7 +303,9 @@ func Test_settings_applyArgs(t *testing.T) {
 					F32 []float32
 					F64 []float64
 					S   []string
+					T   []struct{}
 				}{
+					B:   []bool{true, false},
 					I:   []int{-1},
 					I8:  []int8{-10},
 					I16: []int16{-100},
@@ -306,9 +318,47 @@ func Test_settings_applyArgs(t *testing.T) {
 					U64: []uint64{10000},
 					F32: []float32{10.10},
 					F64: []float64{100.100},
+					S:   []string{"testing", "a", "string", "array"},
 				},
 			},
 			false,
+		},
+		{
+			"should error when trying to convert an unsupported type",
+			[]string{
+				"-t={\"field\": \"val\"}",
+			},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Lists.T": reflect.TypeOf([]testConfig{}),
+				},
+				out: &verboseConfig{},
+			},
+			args{
+				map[string]string{
+					"-t": "Lists.T",
+				},
+			},
+			&verboseConfig{
+				Lists: struct {
+					B   []bool
+					I   []int
+					I8  []int8
+					I16 []int16
+					I32 []int32
+					I64 []int64
+					U   []uint
+					U8  []uint8
+					U16 []uint16
+					U32 []uint32
+					U64 []uint64
+					F32 []float32
+					F64 []float64
+					S   []string
+					T   []struct{}
+				}{},
+			},
+			true,
 		},
 	}
 	for _, tt := range tests {
@@ -429,6 +479,7 @@ func Test_settings_applyDefaultsMap(t *testing.T) {
 
 func Test_settings_applyVars(t *testing.T) {
 	type testConfig struct {
+		Bool   bool
 		Name   string
 		Nested struct {
 			Count int
@@ -450,9 +501,10 @@ func Test_settings_applyVars(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"should apply environment override to struct",
+			"should apply environment variable overrides to struct",
 			fields{
 				fieldTypeMap: map[string]reflect.Type{
+					"Bool":         reflect.TypeOf(true),
 					"Name":         reflect.TypeOf(""),
 					"Nested.Count": reflect.TypeOf(1),
 				},
@@ -460,19 +512,41 @@ func Test_settings_applyVars(t *testing.T) {
 			},
 			args{
 				v: map[string]string{
+					"BOOL":         "Bool",
 					"NAME":         "Name",
 					"NESTED_COUNT": "Nested.Count",
 				},
 			},
 			map[string]string{
+				"BOOL":         "true",
 				"NAME":         "testing name assignment",
 				"NESTED_COUNT": "10",
 			},
 			&testConfig{
+				Bool:   true,
 				Name:   "testing name assignment",
 				Nested: struct{ Count int }{10},
 			},
 			false,
+		},
+		{
+			"should error when trying to set a non supported field type",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Nested": reflect.TypeOf(testConfig{}),
+				},
+				out: &testConfig{},
+			},
+			args{
+				v: map[string]string{
+					"NESTED": "Nested",
+				},
+			},
+			map[string]string{
+				"NESTED": "{ \"Count\": 10 }",
+			},
+			&testConfig{},
+			true,
 		},
 	}
 	for _, tt := range tests {

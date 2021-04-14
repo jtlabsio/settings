@@ -462,12 +462,6 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 		switch t.Kind() {
 		case reflect.Array, reflect.Slice:
 			sVals := commaRE.Split(sVal, -1)
-
-			// if the type is an array, but only 1 value is provided
-			if len(sVals) == 0 {
-				sVals = []string{sVal}
-			}
-
 			ov := s.findOutFieldValue(fieldPath)
 			st := ov.Type().Elem().Kind()
 			pv := reflect.MakeSlice(reflect.Indirect(ov).Type(), len(sVals), cap(sVals))
