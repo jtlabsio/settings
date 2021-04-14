@@ -19,13 +19,25 @@ func Options() ReadOptions {
 	return ReadOptions{}
 }
 
-/*
-func (ro ReadOptions) Defaults() ReadOptions {
-	return ReadOptions{
-
-	}
+// EnvDefault populates the ReadOptions struct with a
+// a default environment override variable setting and
+// a few default search paths
+func (ro ReadOptions) EnvDefault() ReadOptions {
+	return ro.
+		SetEnvOverride("GO_ENV").
+		SetEnvSearchPaths("./", "./config", "./settings")
 }
-//*/
+
+// SetArg can be used to explicitly map a command line argument to a field
+func (ro ReadOptions) SetArg(arg string, fieldPath string) ReadOptions {
+	// ensure it's not empty
+	if ro.ArgsMap == nil {
+		ro.ArgsMap = map[string]string{}
+	}
+
+	ro.ArgsMap[arg] = fieldPath
+	return ro
+}
 
 // SetArgsFileOverride instructs the settings package on where to look
 // for any potential override file locations that are provided as command
@@ -101,7 +113,7 @@ func (ro ReadOptions) SetEnvOverride(vars ...string) ReadOptions {
 		ro.EnvOverride = []string{}
 	}
 
-	ro.EnvOverride = append(ro.ArgsFileOverride, vars...)
+	ro.EnvOverride = append(ro.EnvOverride, vars...)
 
 	return ro
 }
@@ -116,6 +128,17 @@ func (ro ReadOptions) SetEnvSearchPaths(paths ...string) ReadOptions {
 
 	ro.EnvSearchPaths = append(ro.EnvSearchPaths, paths...)
 
+	return ro
+}
+
+// SetVar can be used to explicitly map an environment variable to a field
+func (ro ReadOptions) SetVar(v string, fieldPath string) ReadOptions {
+	// ensure it's not empty
+	if ro.VarsMap == nil {
+		ro.VarsMap = map[string]string{}
+	}
+
+	ro.VarsMap[v] = fieldPath
 	return ro
 }
 
