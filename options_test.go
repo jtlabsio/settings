@@ -24,6 +24,111 @@ func TestOptions(t *testing.T) {
 	}
 }
 
+func TestReadOptions_EnvDefault(t *testing.T) {
+	type fields struct {
+		EnvOverride    []string
+		EnvSearchPaths []string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   ReadOptions
+	}{
+		{
+			"should properly set default environment override settings",
+			fields{},
+			ReadOptions{
+				EnvOverride:    []string{"GO_ENV"},
+				EnvSearchPaths: []string{"./", "./config", "./settings"},
+			},
+		},
+		{
+			"should not override or clear any existing options",
+			fields{
+				EnvOverride:    []string{"SOME_OTHER_VAR"},
+				EnvSearchPaths: []string{"./test"},
+			},
+			ReadOptions{
+				EnvOverride:    []string{"SOME_OTHER_VAR", "GO_ENV"},
+				EnvSearchPaths: []string{"./test", "./", "./config", "./settings"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ro := Options()
+
+			if len(tt.fields.EnvOverride) > 0 {
+				ro.EnvOverride = tt.fields.EnvOverride
+			}
+
+			if len(tt.fields.EnvSearchPaths) > 0 {
+				ro.EnvSearchPaths = tt.fields.EnvSearchPaths
+			}
+
+			if got := ro.EnvDefault(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadOptions.EnvDefault() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReadOptions_SetArg(t *testing.T) {
+	type args struct {
+		arg       string
+		fieldPath string
+	}
+	tests := []struct {
+		name    string
+		argsMap map[string]string
+		args    args
+		want    ReadOptions
+	}{
+		{
+			"should properly add value to args map",
+			nil,
+			args{
+				"--test-value",
+				"Test.Value",
+			},
+			ReadOptions{
+				ArgsMap: map[string]string{
+					"--test-value": "Test.Value",
+				},
+			},
+		},
+		{
+			"should not clear any existing values in args map",
+			map[string]string{
+				"--existing": "Existing",
+			},
+			args{
+				"--test-value",
+				"Test.Value",
+			},
+			ReadOptions{
+				ArgsMap: map[string]string{
+					"--existing":   "Existing",
+					"--test-value": "Test.Value",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ro := Options()
+
+			if tt.argsMap != nil {
+				ro.ArgsMap = tt.argsMap
+			}
+
+			if got := ro.SetArg(tt.args.arg, tt.args.fieldPath); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadOptions.SetArg() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReadOptions_SetArgsFileOverride(t *testing.T) {
 	type args struct {
 		args []string
@@ -363,6 +468,62 @@ func TestReadOptions_SetVarsFileOverride(t *testing.T) {
 
 			if got := ro.SetEnvOverride(tt.args.vars...); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadOptions.SetVarsFileOverride() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReadOptions_SetVar(t *testing.T) {
+	type args struct {
+		v         string
+		fieldPath string
+	}
+	tests := []struct {
+		name    string
+		varsMap map[string]string
+		args    args
+		want    ReadOptions
+	}{
+		{
+			"should properly add value to vars map",
+			nil,
+			args{
+				"TEST_VALUE",
+				"Test.Value",
+			},
+			ReadOptions{
+				VarsMap: map[string]string{
+					"TEST_VALUE": "Test.Value",
+				},
+			},
+		},
+		{
+			"should not clear any existing values in vars map",
+			map[string]string{
+				"EXISTING": "Existing",
+			},
+			args{
+				"TEST_VALUE",
+				"Test.Value",
+			},
+			ReadOptions{
+				VarsMap: map[string]string{
+					"EXISTING":   "Existing",
+					"TEST_VALUE": "Test.Value",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ro := Options()
+
+			if tt.varsMap != nil {
+				ro.VarsMap = tt.varsMap
+			}
+
+			if got := ro.SetVar(tt.args.v, tt.args.fieldPath); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadOptions.SetVar() = %v, want %v", got, tt.want)
 			}
 		})
 	}

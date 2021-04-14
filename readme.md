@@ -78,6 +78,25 @@ For a more verbose example along with execution instructions, see [examples/exam
 
 ReadOptions are used to instruct the package where to find override values from a base file, a command line override file, an environment override file, command line arguments, or from environment variables.
 
+#### EnvDefault
+
+This function exists so that default environment variable driven overrides, similar to those defined in [settings-lib](https://github.com/brozeph/settings-lib), can be provided easily to the Gather function.
+
+```go
+options := settings.Options().EnvDefault()
+settings.Gather(options, &config)
+```
+
+#### SetArg
+
+Similar to [`SetArgsMap`](#SetArgsMap), this can be used to attach command line arguments, individually, to fields for settings.
+
+```go
+options := settings.Options().
+  SetArg("--a-flag", "Field.Name")
+settings.Gather(options, &config)
+```
+
 #### SetArgsFileOverride
 
 When providing a value to this method, one can override the underlying settings via one or more specific files that are provided via command line arguments.
@@ -166,6 +185,16 @@ The `GO_ENV` value is `testing`. Combined with the code snippet above, the app w
 * `./settings/testing.json`
 
 Upon finding a file that matches (the first match), that file is read and the fields defined therein are applied to the out struct.
+
+#### SetVar
+
+Similar to [`SetVarsMap`](#SetVarMap), this can be used to associate environment variables, individually, to fields for settings.
+
+```go
+options := settings.Options().
+  SetVar("FIELD_NAME", "Field.Name")
+settings.Gather(options, &config)
+```
 
 #### SetVarsMap
 
