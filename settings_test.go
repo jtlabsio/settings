@@ -121,12 +121,13 @@ func Test_settings_applyArgs(t *testing.T) {
 		a map[string]string
 	}
 	tests := []struct {
-		name    string
-		osArgs  []string
-		fields  fields
-		args    args
-		want    interface{}
-		wantErr bool
+		name         string
+		osArgs       []string
+		fields       fields
+		args         args
+		want         interface{}
+		errorMessage string
+		wantErr      bool
 	}{
 		{
 			"should properly apply command line arguments",
@@ -145,6 +146,7 @@ func Test_settings_applyArgs(t *testing.T) {
 			&testConfig{
 				Name: "test name",
 			},
+			"",
 			false,
 		},
 		{
@@ -162,6 +164,7 @@ func Test_settings_applyArgs(t *testing.T) {
 				},
 			},
 			&testConfig{},
+			"",
 			false,
 		},
 		{
@@ -181,6 +184,7 @@ func Test_settings_applyArgs(t *testing.T) {
 			&testConfig{
 				Name: "test name",
 			},
+			"",
 			false,
 		},
 		{
@@ -261,6 +265,7 @@ func Test_settings_applyArgs(t *testing.T) {
 					F64: 100.100,
 				},
 			},
+			"",
 			false,
 		},
 		{
@@ -352,6 +357,7 @@ func Test_settings_applyArgs(t *testing.T) {
 					S:   []string{"testing", "a", "string", "array"},
 				},
 			},
+			"",
 			false,
 		},
 		{
@@ -389,6 +395,25 @@ func Test_settings_applyArgs(t *testing.T) {
 					T   []struct{}
 				}{},
 			},
+			"unsupported field type",
+			true,
+		},
+		{
+			"should error on setting a field with the wrong type",
+			[]string{"--name", "test name"},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name": reflect.TypeOf(true),
+				},
+				out: &testConfig{},
+			},
+			args{
+				a: map[string]string{
+					"--name": "Name",
+				},
+			},
+			&testConfig{},
+			"unable to set",
 			true,
 		},
 	}
@@ -399,8 +424,13 @@ func Test_settings_applyArgs(t *testing.T) {
 				fieldTypeMap: tt.fields.fieldTypeMap,
 				out:          tt.fields.out,
 			}
-			if err := s.applyArgs(tt.args.a); (err != nil) != tt.wantErr {
-				t.Errorf("settings.applyArgs() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.applyArgs(tt.args.a); err != nil {
+				if !tt.wantErr {
+					t.Errorf("settings.applyArgs() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if !strings.Contains(err.Error(), tt.errorMessage) {
+					t.Errorf("settings.applyArgs() = %v, want %v", err.Error(), tt.errorMessage)
+				}
 			}
 			if !reflect.DeepEqual(s.out, tt.want) {
 				t.Errorf("settings.applyArgs() = %v, want %v", s.out, tt.want)
@@ -827,7 +857,6 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			"",
 		},
 		{
-			// change wanterr to check match with SettingsFileReadError for line 323 coverage
 			"should return os.ErrNotexist if bad path",
 			args{
 				path: "./not/found.yml",
