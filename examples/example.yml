@@ -1,0 +1,5 @@
+data:
+  port: 27016
+logging:
+  level: trace
+version: "1.1"

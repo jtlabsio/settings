@@ -1,0 +1,17 @@
+name: "example"
+version: "1.0"
+data:
+  name: example-db
+  host: localhost
+  port: 27017
+logging:
+  level: info
+  verbose: false
+server:
+  address: "0.0.0.0:3080"
+lists:
+  animals:
+    - squirrel
+    - hare
+    - bear
+    - crow
