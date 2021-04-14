@@ -52,6 +52,10 @@ type verboseConfig struct {
 }
 
 func TestGather(t *testing.T) {
+	type testConfig struct {
+		Name    string `yaml:"name"`
+		Version string `yaml:"version"`
+	}
 	type args struct {
 		opts ReadOptions
 		out  interface{}
@@ -59,37 +63,47 @@ func TestGather(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
+		want    interface{}
 		wantErr bool
 	}{
 		{
-			"nil interface",
+			"should error with a nil out value",
 			args{
 				opts: Options(),
 				out:  nil,
 			},
+			nil,
 			true,
 		},
 		{
-			"blank interface",
+			"should error with a non struct type out value",
 			args{
 				opts: Options(),
 				out:  map[string]interface{}{},
 			},
+			map[string]interface{}{},
 			true,
 		},
 		{
-			"string interface",
+			"should read base settings",
 			args{
-				opts: Options(),
-				out:  map[string]string{},
+				opts: Options().SetBasePath("./tests/simple.yaml"),
+				out:  &testConfig{},
 			},
-			true,
+			&testConfig{
+				Name:    "example",
+				Version: "1.1",
+			},
+			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Gather(tt.args.opts, tt.args.out); (err != nil) != tt.wantErr {
 				t.Errorf("Gather() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(tt.args.out, tt.want) {
+				t.Errorf("Gather() = %v, want %v", tt.args.out, tt.want)
 			}
 		})
 	}
