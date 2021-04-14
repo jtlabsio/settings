@@ -131,6 +131,7 @@ func (s *settings) applyArgs(a map[string]string) error {
 }
 
 func (s *settings) applyVars(v map[string]string) error {
+	// options.SetVarsMap shouldn't ever pass a nil map, so this is defensively safe
 	if v == nil {
 		return nil
 	}

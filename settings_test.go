@@ -186,6 +186,25 @@ func Test_settings_applyVars(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"should return nil if varsMap is nil",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Name":         reflect.TypeOf(""),
+					"Nested.Count": reflect.TypeOf(1),
+				},
+				out: &testConfig{},
+			},
+			args{
+				v: nil,
+			},
+			map[string]string{
+				"NAME":         "testing name assignment",
+				"NESTED_COUNT": "10",
+			},
+			&testConfig{},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		// set the environment test values
