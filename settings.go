@@ -462,6 +462,12 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 		switch t.Kind() {
 		case reflect.Array, reflect.Slice:
 			sVals := commaRE.Split(sVal, -1)
+
+			// if the type is an array, but only 1 value is provided
+			if len(sVals) == 0 {
+				sVals = []string{sVal}
+			}
+
 			ov := s.findOutFieldValue(fieldPath)
 			st := ov.Type().Elem().Kind()
 			pv := reflect.MakeSlice(reflect.Indirect(ov).Type(), len(sVals), cap(sVals))
@@ -509,35 +515,35 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 					}
 					pv.Index(i).Set(reflect.ValueOf(v))
 				case reflect.Uint:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint8:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint8(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint16:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint16(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint32:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint32(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint64:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}

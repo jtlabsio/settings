@@ -32,9 +32,19 @@ type verboseConfig struct {
 		F64 float64
 	}
 	Lists struct {
-		LuckyNumbers []int
-		Animals      []string
-		Dollars      []float32
+		I   []int
+		I8  []int8
+		I16 []int16
+		I32 []int32
+		I64 []int64
+		U   []uint
+		U8  []uint8
+		U16 []uint16
+		U32 []uint32
+		U64 []uint64
+		F32 []float32
+		F64 []float64
+		S   []string
 	}
 }
 
@@ -140,7 +150,7 @@ func Test_settings_applyArgs(t *testing.T) {
 			false,
 		},
 		{
-			"verbose setFieldValue testing...",
+			"should properly handle number string value conversion",
 			[]string{
 				"-i=-1",
 				"-i8=-10",
@@ -152,6 +162,8 @@ func Test_settings_applyArgs(t *testing.T) {
 				"-u16=100",
 				"-u32=1000",
 				"-u64=10000",
+				"-f32=10.10",
+				"-f64=100.100",
 			},
 			fields{
 				fieldTypeMap: map[string]reflect.Type{
@@ -165,6 +177,8 @@ func Test_settings_applyArgs(t *testing.T) {
 					"Numbers.U16": reflect.TypeOf(uint16(1)),
 					"Numbers.U32": reflect.TypeOf(uint32(1)),
 					"Numbers.U64": reflect.TypeOf(uint64(1)),
+					"Numbers.F32": reflect.TypeOf(float32(1.1)),
+					"Numbers.F64": reflect.TypeOf(float64(1.1)),
 				},
 				out: &verboseConfig{},
 			},
@@ -180,6 +194,8 @@ func Test_settings_applyArgs(t *testing.T) {
 					"-u16": "Numbers.U16",
 					"-u32": "Numbers.U32",
 					"-u64": "Numbers.U64",
+					"-f32": "Numbers.F32",
+					"-f64": "Numbers.F64",
 				},
 			},
 			&verboseConfig{
@@ -207,6 +223,89 @@ func Test_settings_applyArgs(t *testing.T) {
 					U16: 100,
 					U32: 1000,
 					U64: 10000,
+					F32: 10.10,
+					F64: 100.100,
+				},
+			},
+			false,
+		},
+		{
+			"should properly handle slice string value conversion",
+			[]string{
+				"-i=-1",
+				"-i8=-10",
+				"-i16=-100",
+				"-i32=-1000",
+				"-i64=-10000",
+				"-u=1",
+				"-u8=10",
+				"-u16=100",
+				"-u32=1000",
+				"-u64=10000",
+				"-f32=10.10",
+				"-f64=100.100",
+			},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Lists.I":   reflect.TypeOf([]int{1}),
+					"Lists.I8":  reflect.TypeOf([]int8{1}),
+					"Lists.I16": reflect.TypeOf([]int16{1}),
+					"Lists.I32": reflect.TypeOf([]int32{1}),
+					"Lists.I64": reflect.TypeOf([]int64{1}),
+					"Lists.U":   reflect.TypeOf([]uint{1}),
+					"Lists.U8":  reflect.TypeOf([]uint8{1}),
+					"Lists.U16": reflect.TypeOf([]uint16{1}),
+					"Lists.U32": reflect.TypeOf([]uint32{1}),
+					"Lists.U64": reflect.TypeOf([]uint64{1}),
+					"Lists.F32": reflect.TypeOf([]float32{1.1}),
+					"Lists.F64": reflect.TypeOf([]float64{1.1}),
+				},
+				out: &verboseConfig{},
+			},
+			args{
+				map[string]string{
+					"-i":   "Lists.I",
+					"-i8":  "Lists.I8",
+					"-i16": "Lists.I16",
+					"-i32": "Lists.I32",
+					"-i64": "Lists.I64",
+					"-u":   "Lists.U",
+					"-u8":  "Lists.U8",
+					"-u16": "Lists.U16",
+					"-u32": "Lists.U32",
+					"-u64": "Lists.U64",
+					"-f32": "Lists.F32",
+					"-f64": "Lists.F64",
+				},
+			},
+			&verboseConfig{
+				Lists: struct {
+					I   []int
+					I8  []int8
+					I16 []int16
+					I32 []int32
+					I64 []int64
+					U   []uint
+					U8  []uint8
+					U16 []uint16
+					U32 []uint32
+					U64 []uint64
+					F32 []float32
+					F64 []float64
+					S   []string
+				}{
+					I:   []int{-1},
+					I8:  []int8{-10},
+					I16: []int16{-100},
+					I32: []int32{-1000},
+					I64: []int64{-10000},
+					U:   []uint{1},
+					U8:  []uint8{10},
+					U16: []uint16{100},
+					U32: []uint32{1000},
+					U64: []uint64{10000},
+					F32: []float32{10.10},
+					F64: []float64{100.100},
 				},
 			},
 			false,
