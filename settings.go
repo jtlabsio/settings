@@ -89,14 +89,8 @@ func (s *settings) applyArgs(a map[string]string) error {
 
 	// iterate each element in args map
 	for arg, field := range a {
-		skip := false
 		// iterate each arg provided to the application
 		for i, oa := range os.Args {
-			if skip {
-				skip = false
-				continue
-			}
-
 			// check for `--cli-arg=` scenario (where value is specified after =)
 			al := len(arg)
 			if len(oa) > al && oa[0:al] == arg && oa[al] == eq[0] {
@@ -121,7 +115,6 @@ func (s *settings) applyArgs(a map[string]string) error {
 				}
 
 				// next os.Arg is the value, skip trying to match it
-				skip = true
 				break
 			}
 		}
@@ -161,33 +154,53 @@ func (s *settings) applyDefaultsMap(d map[string]interface{}) error {
 		return nil
 	}
 
-	// iterate the defaults and apply them (as appropriate)
-	for fieldName, defaultValue := range d {
-		// ensure the field exists in the out object
+	a := []struct {
+		defVal    interface{}
+		fieldName string
+		fieldVal  reflect.Value
+	}{}
+
+	// validate each default value type before setting
+	for fieldName, defVal := range d {
 		if t, ok := s.fieldTypeMap[fieldName]; ok {
-			// we found a match... ensure the type matches
-			if t.Kind() != reflect.ValueOf(defaultValue).Kind() {
+			if t.Kind() != reflect.ValueOf(defVal).Kind() {
 				// type mismatch error
 				return SettingsFieldTypeMismatch(
 					fieldName,
 					t.Kind(),
-					reflect.ValueOf(defaultValue).Kind())
+					reflect.ValueOf(defVal).Kind())
 			}
 
-			// find the field within the out struct and set it (if we can)
-			v := s.findOutFieldValue(fieldName)
-			if v.CanSet() {
-				dv := reflect.ValueOf(defaultValue)
-				v.Set(dv)
-				continue
+			fieldVal := s.findOutFieldValue(fieldName)
+
+			if !fieldVal.CanSet() {
+				// unable to set the value
+				return SettingsFieldSetError(fieldName, t.Kind())
 			}
 
-			// unable to set the value
-			return SettingsFieldSetError(fieldName, t.Kind())
+			a = append(
+				a,
+				struct {
+					defVal    interface{}
+					fieldName string
+					fieldVal  reflect.Value
+				}{
+					defVal,
+					fieldName,
+					fieldVal,
+				})
+
+			continue
 		}
 
 		// default field is not in the out struct
 		return SettingsFieldDoesNotExist("DefaultsMap", fieldName)
+	}
+
+	// iterate the default to apply and apply them
+	for _, aa := range a {
+		dv := reflect.ValueOf(aa.defVal)
+		aa.fieldVal.Set(dv)
 	}
 
 	return nil
@@ -490,35 +503,35 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 					}
 					pv.Index(i).Set(reflect.ValueOf(v))
 				case reflect.Uint:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint8:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint8(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint16:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint16(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint32:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
 					iv := uint32(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Uint64:
-					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
+					v, err := strconv.ParseUint(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
 					}
