@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -19,6 +20,7 @@ var (
 	commaRE     = regexp.MustCompile(`\,\s?`)
 	dotRE       = regexp.MustCompile(`\.`)
 	settingsExt = []string{".yml", ".yaml", ".json"}
+	timeType    = reflect.TypeOf(time.Now())
 )
 
 type settings struct {
@@ -626,6 +628,15 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 		case reflect.String:
 			val = sVal
 		default:
+			if t == timeType {
+				dv, err := time.Parse(time.RFC3339, sVal)
+				if err != nil {
+					return SettingsFieldSetError(fieldPath, t.Kind(), err)
+				}
+				val = dv
+				break
+			}
+
 			// complex64, complex128, chan, func, interface, map, ptr, struct and unsafeptr
 			return SettingsFieldSetError(
 				fieldPath,

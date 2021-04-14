@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 type verboseConfig struct {
@@ -111,7 +112,8 @@ func TestGather(t *testing.T) {
 
 func Test_settings_applyArgs(t *testing.T) {
 	type testConfig struct {
-		Name string
+		Name    string
+		Created time.Time
 	}
 	type fields struct {
 		fieldTypeMap map[string]reflect.Type
@@ -145,6 +147,26 @@ func Test_settings_applyArgs(t *testing.T) {
 			},
 			&testConfig{
 				Name: "test name",
+			},
+			"",
+			false,
+		},
+		{
+			"should properly set time.Time from command line argument",
+			[]string{"--created", "2021-02-16T00:00:00.000Z"},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Created": reflect.TypeOf(time.Now()),
+				},
+				out: &testConfig{},
+			},
+			args{
+				a: map[string]string{
+					"--created": "Created",
+				},
+			},
+			&testConfig{
+				Created: time.Date(2021, time.February, 16, 0, 0, 0, 0, time.UTC),
 			},
 			"",
 			false,
@@ -826,52 +848,56 @@ func Test_settings_determineFileType(t *testing.T) {
 }
 
 func Test_settings_readBaseSettings(t *testing.T) {
+	type testConfig struct {
+		Name    string
+		Created time.Time
+		Version string
+	}
 	type args struct {
 		path string
 	}
-	// Options().SetBasePath("./tests/test.yaml")
 	tests := []struct {
 		name         string
 		args         args
-		want         *verboseConfig
+		want         *testConfig
 		wantErr      bool
 		errorMessage string
 	}{
 		{
-			"should set name and version",
+			"should set fields when unmarshalling",
 			args{
 				path: "./tests/simple.yaml",
 			},
-			&verboseConfig{
+			&testConfig{
 				Name:    "example",
+				Created: time.Date(2021, time.February, 16, 0, 0, 0, 0, time.UTC),
 				Version: "1.1",
 			},
 			false,
 			"",
 		},
 		{
-			"should return an error = <nil> if path is blank",
+			"should raise an error when path is blank",
 			args{path: ""},
-			&verboseConfig{},
+			&testConfig{},
 			false,
 			"",
 		},
 		{
-			"should return os.ErrNotexist if bad path",
+			"should raise os.ErrNotexist if bad path",
 			args{
 				path: "./not/found.yml",
 			},
-			&verboseConfig{},
+			&testConfig{},
 			true,
 			"no such file",
 		},
 		{
-			// add unmarshal file return error check for line 327
 			"should return invalid character on badly formatted file",
 			args{
 				path: "./tests/broken.json",
 			},
-			&verboseConfig{},
+			&testConfig{},
 			true,
 			"invalid character",
 		},
@@ -879,7 +905,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := settings{
-				out: &verboseConfig{},
+				out: &testConfig{},
 			}
 			if err := s.readBaseSettings(tt.args.path); err != nil {
 				if !tt.wantErr {
