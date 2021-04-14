@@ -7,33 +7,35 @@ import (
 	"testing"
 )
 
-type config struct {
+type verboseConfig struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
 	Nested  struct {
-		Name        string `yaml:"name"`
-		Number      int    `yaml:"number"`
+		Name        string
+		Number      int
 		NestedAgain struct {
-			Desc string `yaml:"desc"`
-		} `yaml:"nestedAgain"`
-	} `yaml:"nested"`
+			Desc string
+		}
+	}
 	Numbers struct {
-		V8  int8    `yaml:"v8"`
-		V16 int16   `yaml:"v16"`
-		V32 int32   `yaml:"v32"`
-		V64 int64   `yaml:"v64"`
-		U8  uint8   `yaml:"u8"`
-		U16 uint16  `yaml:"u16"`
-		U32 uint32  `yaml:"u32"`
-		U64 uint64  `yaml:"u64"`
-		F32 float32 `yaml:"f32"`
-		F64 float64 `yaml:"f64"`
-	} `yaml:"numbers"`
+		I   int
+		I8  int8
+		I16 int16
+		I32 int32
+		I64 int64
+		U   uint
+		U8  uint8
+		U16 uint16
+		U32 uint32
+		U64 uint64
+		F32 float32
+		F64 float64
+	}
 	Lists struct {
-		LuckyNumbers []int     `yaml:"luckyNumbers"`
-		Animals      []string  `yaml:"animals"`
-		Dollars      []float32 `yaml:"dollars"`
-	} `yaml:"lists"`
+		LuckyNumbers []int
+		Animals      []string
+		Dollars      []float32
+	}
 }
 
 func TestGather(t *testing.T) {
@@ -134,6 +136,78 @@ func Test_settings_applyArgs(t *testing.T) {
 			},
 			&testConfig{
 				Name: "test name",
+			},
+			false,
+		},
+		{
+			"verbose setFieldValue testing...",
+			[]string{
+				"-i=-1",
+				"-i8=-10",
+				"-i16=-100",
+				"-i32=-1000",
+				"-i64=-10000",
+				"-u=1",
+				"-u8=10",
+				"-u16=100",
+				"-u32=1000",
+				"-u64=10000",
+			},
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"Numbers.I":   reflect.TypeOf(int(1)),
+					"Numbers.I8":  reflect.TypeOf(int8(1)),
+					"Numbers.I16": reflect.TypeOf(int16(1)),
+					"Numbers.I32": reflect.TypeOf(int32(1)),
+					"Numbers.I64": reflect.TypeOf(int64(1)),
+					"Numbers.U":   reflect.TypeOf(uint(1)),
+					"Numbers.U8":  reflect.TypeOf(uint8(1)),
+					"Numbers.U16": reflect.TypeOf(uint16(1)),
+					"Numbers.U32": reflect.TypeOf(uint32(1)),
+					"Numbers.U64": reflect.TypeOf(uint64(1)),
+				},
+				out: &verboseConfig{},
+			},
+			args{
+				map[string]string{
+					"-i":   "Numbers.I",
+					"-i8":  "Numbers.I8",
+					"-i16": "Numbers.I16",
+					"-i32": "Numbers.I32",
+					"-i64": "Numbers.I64",
+					"-u":   "Numbers.U",
+					"-u8":  "Numbers.U8",
+					"-u16": "Numbers.U16",
+					"-u32": "Numbers.U32",
+					"-u64": "Numbers.U64",
+				},
+			},
+			&verboseConfig{
+				Numbers: struct {
+					I   int
+					I8  int8
+					I16 int16
+					I32 int32
+					I64 int64
+					U   uint
+					U8  uint8
+					U16 uint16
+					U32 uint32
+					U64 uint64
+					F32 float32
+					F64 float64
+				}{
+					I:   -1,
+					I8:  -10,
+					I16: -100,
+					I32: -1000,
+					I64: -10000,
+					U:   1,
+					U8:  10,
+					U16: 100,
+					U32: 1000,
+					U64: 10000,
+				},
 			},
 			false,
 		},
@@ -484,7 +558,7 @@ func Test_settings_determineFileType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &settings{
-				out: &config{},
+				out: &verboseConfig{},
 			}
 			got, err := s.determineFileType(tt.args.path)
 			if (err != nil) != tt.wantErr {
@@ -506,7 +580,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	tests := []struct {
 		name         string
 		args         args
-		want         *config
+		want         *verboseConfig
 		wantErr      bool
 		errorMessage string
 	}{
@@ -515,7 +589,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			args{
 				path: "./tests/simple.yaml",
 			},
-			&config{
+			&verboseConfig{
 				Name:    "example",
 				Version: "1.1",
 			},
@@ -525,7 +599,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 		{
 			"should return an error = <nil> if path is blank",
 			args{path: ""},
-			&config{},
+			&verboseConfig{},
 			false,
 			"",
 		},
@@ -535,7 +609,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			args{
 				path: "./not/found.yml",
 			},
-			&config{},
+			&verboseConfig{},
 			true,
 			"no such file",
 		},
@@ -545,7 +619,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			args{
 				path: "./tests/broken.json",
 			},
-			&config{},
+			&verboseConfig{},
 			true,
 			"invalid character",
 		},
@@ -553,7 +627,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := settings{
-				out: &config{},
+				out: &verboseConfig{},
 			}
 			if err := s.readBaseSettings(tt.args.path); err != nil {
 				if !tt.wantErr {
