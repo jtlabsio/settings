@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+// SettingsError is any type of error that is raised specifically related to gathering
+// and applying settings from each of the specified sources
 type SettingsError struct {
 	Message string
 }
