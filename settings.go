@@ -19,7 +19,7 @@ import (
 var (
 	commaRE     = regexp.MustCompile(`\,\s?`)
 	dotRE       = regexp.MustCompile(`\.`)
-	settingsExt = []string{".yml", ".yaml", ".json"}
+	settingsExt = []string{".yml", ".yaml", ".json", ""}
 	timeType    = reflect.TypeOf(time.Now())
 )
 

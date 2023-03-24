@@ -1181,6 +1181,29 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			false,
 		},
 		{
+			"should apply override from environment override with file pattern and extension",
+			map[string]string{
+				"GO_ENV": "pattern",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"./tests"},
+				"config.%s.yml",
+				[]string{"GO_ENV"},
+			},
+			&testConfig{
+				Name:    "example-config-file-pattern",
+				Version: "1.1",
+			},
+			false,
+		},
+		{
 			"should error when there is a problem reading the file",
 			map[string]string{
 				"GO_ENV": "broken",
