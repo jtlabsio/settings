@@ -1,5 +1,13 @@
-- name: Test
-  run: go test -v ./...
+name: go.jtlabs.io/settings
 
-- name: Go coverage report
-  uses: ncruces/go-coverage-report@v0.1.3
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: go test -v ./...
+
+      - name: Go coverage report
+        uses: ncruces/go-coverage-report@v0.1.3
