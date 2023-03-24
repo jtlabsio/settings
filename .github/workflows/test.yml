@@ -13,6 +13,15 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: 1.20
+      - name: Debug
+        run: |
+          pwd
+          echo ${HOME}
+          echo ${GITHUB_WORKSPACE}
+          echo ${GOPATH}
+          echo ${GOROOT}
+        env:
+          GOPATH: /home/runner/work/woodpecker/g
       - name: Install dependencies
         run: go get .
         env:
