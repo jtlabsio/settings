@@ -8,9 +8,6 @@ jobs:
       image: golang:1.20.2
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
-          path: go/src/github.com/jtlabsio/settings
       - name: Install dependencies
         run: go install
       - name: Test
