@@ -1,6 +1,6 @@
 # 12-Factor Compliant Application Configuration
 
-[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://pkg.go.dev/go.jtlabs.io/settings) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/jtlabsio/settings/main/LICENSE) [![Go Coverage](https://github.com/USER/REPO/wiki/coverage.svg)](https://raw.githack.com/wiki/USER/REPO/coverage.html) [![GoReportCard example](https://goreportcard.com/badge/github.com/jtlabsio/settings)](https://goreportcard.com/report/github.com/jtlabsio/settings)
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://pkg.go.dev/go.jtlabs.io/settings) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/jtlabsio/settings/main/LICENSE) [![GoReportCard example](https://goreportcard.com/badge/github.com/jtlabsio/settings)](https://goreportcard.com/report/github.com/jtlabsio/settings)
 
 This package gathers values (typically used for application settings and configuration) from various sources outside of the application, and layers them together in a single output struct (supplied as an argument) for use by the application. This package supports [12-factor](https://12factor.net) configuration use cases to facilitate cloud-native API and application development.
 
