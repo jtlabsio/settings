@@ -447,7 +447,7 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string, fi
 				}
 
 				// search file by env file pattern if provided
-				if filePattern != "" {
+				if !found && filePattern != "" {
 					sp = path.Join(prefix, fmt.Sprintf(filePattern, envName))
 					found, err = extensionSearch(sp)
 					if err != nil {

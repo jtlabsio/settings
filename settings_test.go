@@ -1135,9 +1135,32 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			false,
 		},
 		{
-			"should apply override from environment override with file pattern",
+			"should only apply override from base file named by environment when there is also a match on file pattern",
 			map[string]string{
 				"GO_ENV": "simple",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"./tests"},
+				"config.%s",
+				[]string{"GO_ENV"},
+			},
+			&testConfig{
+				Name:    "example",
+				Version: "1.1",
+			},
+			false,
+		},
+		{
+			"should apply override from environment override with file pattern",
+			map[string]string{
+				"GO_ENV": "pattern",
 			},
 			fields{
 				map[string]reflect.Type{
