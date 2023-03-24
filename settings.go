@@ -244,7 +244,12 @@ func (s *settings) determineFieldTypes() error {
 		ct = ct.Elem()
 	}
 
-	// the target for settings must be a struct of some sort
+	// check for a map target
+	for ct.Kind() == reflect.Map {
+		ct = ct.Elem()
+	}
+
+	// if the target isn't a map, then it must be a struct of some sort
 	if ct.Kind() != reflect.Struct {
 		// target is not suitable to populate
 		return SettingsTypeDiscoveryError(ct.Kind())
@@ -439,20 +444,26 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string, fi
 		if envName != "" {
 			// now iterate search paths
 			for _, prefix := range searchPaths {
-				// search file by environment name alone
-				sp := path.Join(prefix, envName)
-				found, err := extensionSearch(sp)
-				if err != nil {
-					return err
-				}
+				var found bool
 
 				// search file by env file pattern if provided
-				if !found && filePattern != "" {
-					sp = path.Join(prefix, fmt.Sprintf(filePattern, envName))
-					found, err = extensionSearch(sp)
+				if filePattern != "" {
+					sp := path.Join(prefix, fmt.Sprintf(filePattern, envName))
+					f, err := extensionSearch(sp)
 					if err != nil {
 						return err
 					}
+					found = f
+				}
+
+				if !found {
+					// search file by environment name alone
+					sp := path.Join(prefix, envName)
+					f, err := extensionSearch(sp)
+					if err != nil {
+						return err
+					}
+					found = f
 				}
 
 				if found {
