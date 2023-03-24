@@ -10,6 +10,7 @@ type ReadOptions struct {
 	DefaultsMap      map[string]interface{}
 	EnvOverride      []string
 	EnvSearchPaths   []string
+	EnvSearchPattern string
 	VarsMap          map[string]string
 }
 
@@ -127,6 +128,14 @@ func (ro ReadOptions) SetEnvSearchPaths(paths ...string) ReadOptions {
 	}
 
 	ro.EnvSearchPaths = append(ro.EnvSearchPaths, paths...)
+
+	return ro
+}
+
+func (ro ReadOptions) SetEnvSearchPattern(pattern string) ReadOptions {
+	if pattern != "" {
+		ro.EnvSearchPattern = pattern
+	}
 
 	return ro
 }

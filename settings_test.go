@@ -1060,6 +1060,7 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 	}
 	type args struct {
 		searchPaths []string
+		filePattern string
 		vars        []string
 	}
 	tests := []struct {
@@ -1084,6 +1085,7 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			},
 			args{
 				[]string{"./tests"},
+				"",
 				[]string{},
 			},
 			&testConfig{},
@@ -1103,6 +1105,7 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			},
 			args{
 				[]string{},
+				"",
 				[]string{"GO_ENV"},
 			},
 			&testConfig{},
@@ -1122,10 +1125,34 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			},
 			args{
 				[]string{"./tests"},
+				"",
 				[]string{"GO_ENV"},
 			},
 			&testConfig{
 				Name:    "example",
+				Version: "1.1",
+			},
+			false,
+		},
+		{
+			"should apply override from environment override with file pattern",
+			map[string]string{
+				"GO_ENV": "simple",
+			},
+			fields{
+				map[string]reflect.Type{
+					"Name":    reflect.TypeOf(""),
+					"Version": reflect.TypeOf(""),
+				},
+				&testConfig{},
+			},
+			args{
+				[]string{"./tests"},
+				"config.%s",
+				[]string{"GO_ENV"},
+			},
+			&testConfig{
+				Name:    "example-config-file-pattern",
 				Version: "1.1",
 			},
 			false,
@@ -1144,6 +1171,7 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			},
 			args{
 				[]string{"./tests"},
+				"",
 				[]string{"GO_ENV"},
 			},
 			&testConfig{},
@@ -1163,6 +1191,7 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 			},
 			args{
 				[]string{"./tests"},
+				"",
 				[]string{"GO_ENV"},
 			},
 			&testConfig{},
@@ -1181,7 +1210,7 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 				fieldTypeMap: tt.fields.fieldTypeMap,
 				out:          tt.fields.out,
 			}
-			if err := s.searchForEnvOverrides(tt.args.vars, tt.args.searchPaths); (err != nil) != tt.wantErr {
+			if err := s.searchForEnvOverrides(tt.args.vars, tt.args.searchPaths, tt.args.filePattern); (err != nil) != tt.wantErr {
 				t.Errorf("settings.searchForEnvOverrides() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(s.out, tt.want) {
