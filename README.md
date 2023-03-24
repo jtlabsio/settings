@@ -205,17 +205,11 @@ GO_ENV=testing go run cmd/app.go
 
 The settings package will look for the following files:
 
-* `./testing.yml`
 * `./config.testing.yml`
-* `./testing.yaml`
 * `./config.testing.yaml`
-* `./testing.json`
 * `./config.testing.json`
-* `./settings/testing.yml`
 * `./settings/config.testing.yml`
-* `./settings/testing.yaml`
 * `./settings/config.testing.yaml`
-* `./settings/testing.json`
 * `./settings/config.testing.json`
 
 In this scenario, if both `./testing.yml` and `./config.testing.yml` are found, only the `./testing.yml` will be loaded.
