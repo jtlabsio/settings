@@ -1,6 +1,6 @@
 # 12-Factor Compliant Application Configuration
 
-[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://pkg.go.dev/go.jtlabs.io/settings) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/jtlabsio/settings/main/LICENSE) [![Coverage](http://gocover.io/_badge/go.jtlabs.io/settings)](http://gocover.io/go.jtlabs.io/settings) [![GoReportCard example](https://goreportcard.com/badge/github.com/jtlabsio/settings)](https://goreportcard.com/report/github.com/jtlabsio/settings)
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://pkg.go.dev/go.jtlabs.io/settings) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/jtlabsio/settings/main/LICENSE) [![GoReportCard example](https://goreportcard.com/badge/github.com/jtlabsio/settings)](https://goreportcard.com/report/github.com/jtlabsio/settings)
 
 This package gathers values (typically used for application settings and configuration) from various sources outside of the application, and layers them together in a single output struct (supplied as an argument) for use by the application. This package supports [12-factor](https://12factor.net) configuration use cases to facilitate cloud-native API and application development.
 
@@ -157,7 +157,7 @@ settings.Gather(options, &config)
 
 The string value of the map is the field path where hierarchy / depth is noted by the `.` character.
 
-#### SetEnvOverride and SetEnvSearchPaths
+#### SetEnvOverride and SetEnvSearchPaths and SetEnvSearchPattern
 
 Environment override and search paths can be provided to the package to enable virtually named environment level overrides at a partial or complete configuration level.
 
@@ -186,6 +186,40 @@ The `GO_ENV` value is `testing`. Combined with the code snippet above, the app w
 
 Upon finding a file that matches (the first match), that file is read and the fields defined therein are applied to the out struct.
 
+If `SetEnvSearchPattern` is used to defined a file name pattern, in addition to the above steps, files are searched using the file name pattern provided...
+
+```go
+options := settings.
+  Options().
+  SetEnvSearchPaths("./", "./settings"). // look for files in "./" and "./settings
+  SetEnvSearchPattern("config.%s").
+  SetEnvOverride("GO_ENV", "GO_ENVIRONMENT")
+settings.Gather(options, &config)
+```
+
+Using the above example, when the following is used to start the application:
+
+```bash
+GO_ENV=testing go run cmd/app.go
+```
+
+The settings package will look for the following files:
+
+* `./testing.yml`
+* `./config.testing.yml`
+* `./testing.yaml`
+* `./config.testing.yaml`
+* `./testing.json`
+* `./config.testing.json`
+* `./settings/testing.yml`
+* `./settings/config.testing.yml`
+* `./settings/testing.yaml`
+* `./settings/config.testing.yaml`
+* `./settings/testing.json`
+* `./settings/config.testing.json`
+
+In this scenario, if both `./testing.yml` and `./config.testing.yml` are found, only the `./testing.yml` will be loaded.
+
 #### SetVar
 
 Similar to [`SetVarsMap`](#SetVarMap), this can be used to associate environment variables, individually, to fields for settings.
@@ -204,7 +238,7 @@ Similar to the Args map, the Vars map can be used to override individual fields 
 
 ### Why build this?
 
-For our use case, we desired a simple and extensible configuration mechanism that spiritually adheres to 12-factor principles and facilitates the layered specification of application settings / configuration. An initial base configuration file to be the start, with an ability to specify override files as a layer of additional settings (either full or partial) on top of the base file (the locations for which specified via command line arguments or environment variables). Finally, having an ability to override individual keys within the configuration with specific environment variables or command line arguments.
+For our use case, we desired a simple and extensible configuration mechanism that spiritually adheres to 12-factor principles and facilitates the layered specification of nn settings / configuration. An initial base configuration file to be the start, with an ability to specify override files as a layer of additional settings (either full or partial) on top of the base file (the locations for which specified via command line arguments or environment variables). Finally, having an ability to override individual keys within the configuration with specific environment variables or command line arguments.
 
 This settings library was built in the spirit of <https://github.com/brozeph/settings-lib>, which in many ways could be considered this package's Node.js flavored older sibling. This package is not a direct port of [settings-lib](https://github.com/brozeph/settings-lib), though, and makes use of Go specific idioms.
 

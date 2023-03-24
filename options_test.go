@@ -423,7 +423,7 @@ func TestReadOptions_SetSearchPaths(t *testing.T) {
 		want ReadOptions
 	}{
 		{
-			"should properly set the base path when provided",
+			"should properly set the search paths when provided",
 			args{
 				[]string{".", "./config", "./settings"},
 			},
@@ -438,6 +438,36 @@ func TestReadOptions_SetSearchPaths(t *testing.T) {
 
 			if got := ro.SetEnvSearchPaths(tt.args.paths...); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadOptions.SetSearchPaths() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReadOptions_SetEnvSearchPattern(t *testing.T) {
+	type args struct {
+		pattern string
+	}
+	tests := []struct {
+		name string
+		args args
+		want ReadOptions
+	}{
+		{
+			"should properly set the search pattern when provided",
+			args{
+				"test.*",
+			},
+			ReadOptions{
+				EnvSearchPattern: "test.*",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ro := Options()
+
+			if got := ro.SetEnvSearchPattern(tt.args.pattern); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadOptions.SetEnvSearchPattern() = %v, want %v", got, tt.want)
 			}
 		})
 	}

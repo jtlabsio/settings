@@ -19,7 +19,7 @@ import (
 var (
 	commaRE     = regexp.MustCompile(`\,\s?`)
 	dotRE       = regexp.MustCompile(`\.`)
-	settingsExt = []string{".yml", ".yaml", ".json"}
+	settingsExt = []string{".yml", ".yaml", ".json", ""}
 	timeType    = reflect.TypeOf(time.Now())
 )
 
@@ -68,7 +68,7 @@ func Gather(opts ReadOptions, out interface{}) error {
 	}
 
 	// read any applicable environment override files
-	if err := s.searchForEnvOverrides(opts.EnvOverride, opts.EnvSearchPaths); err != nil {
+	if err := s.searchForEnvOverrides(opts.EnvOverride, opts.EnvSearchPaths, opts.EnvSearchPattern); err != nil {
 		return err
 	}
 
@@ -403,13 +403,33 @@ func (s *settings) searchForArgOverrides(args []string) error {
 	return nil
 }
 
-func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) error {
+func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string, filePattern string) error {
 	if len(vars) == 0 {
 		return nil
 	}
 
 	if len(searchPaths) == 0 {
 		return nil
+	}
+
+	var extensionSearch = func(sp string) (bool, error) {
+		for _, ext := range settingsExt {
+			spf := fmt.Sprintf("%s%s", sp, ext)
+
+			// continue when the file can't be opened (presumably does not exist)
+			if _, err := os.Stat(spf); err != nil {
+				continue
+			}
+
+			// unmarshal the environment override over the base
+			if err := s.readOverrideFile(spf); err != nil {
+				return false, err
+			}
+
+			return true, nil
+		}
+
+		return false, nil
 	}
 
 	for _, v := range vars {
@@ -419,24 +439,20 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string) er
 		if envName != "" {
 			// now iterate search paths
 			for _, prefix := range searchPaths {
-				found := false
+				// search file by environment name alone
 				sp := path.Join(prefix, envName)
+				found, err := extensionSearch(sp)
+				if err != nil {
+					return err
+				}
 
-				for _, ext := range settingsExt {
-					spf := fmt.Sprintf("%s%s", sp, ext)
-
-					// continue when the file can't be opened (presumably does not exist)
-					if _, err := os.Stat(spf); err != nil {
-						continue
-					}
-
-					// unmarshal the environment override over the base
-					if err := s.readOverrideFile(spf); err != nil {
+				// search file by env file pattern if provided
+				if !found && filePattern != "" {
+					sp = path.Join(prefix, fmt.Sprintf(filePattern, envName))
+					found, err = extensionSearch(sp)
+					if err != nil {
 						return err
 					}
-
-					found = true
-					break
 				}
 
 				if found {
