@@ -1,0 +1,5 @@
+- name: Test
+  run: go test -v ./...
+
+- name: Go coverage report
+  uses: ncruces/go-coverage-report@v0.1.3
