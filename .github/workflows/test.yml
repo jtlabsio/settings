@@ -6,8 +6,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: golang:1.20.2
-      env:
-        GOPATH: /__w/jtlabsio/go
     steps:
       - uses: actions/checkout@v3
         with:
