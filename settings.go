@@ -421,8 +421,6 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string, fi
 		for _, ext := range settingsExt {
 			spf := fmt.Sprintf("%s%s", sp, ext)
 
-			fmt.Println(spf)
-
 			// continue when the file can't be opened (presumably does not exist)
 			if _, err := os.Stat(spf); err != nil {
 				continue
