@@ -456,7 +456,7 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string, fi
 					found = f
 				}
 
-				if !found {
+				if !found && filePattern == "" {
 					// search file by environment name alone
 					sp := path.Join(prefix, envName)
 					f, err := extensionSearch(sp)
