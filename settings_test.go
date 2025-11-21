@@ -110,6 +110,44 @@ func TestGather(t *testing.T) {
 	}
 }
 
+func Test_settings_reflectTagOverrideArgs(t *testing.T) {
+	type config struct {
+		Name     string `arg:"--name" env:"NAME_ENV"`
+		Count    int    `arg:"-c"`
+		URL      string `env:"SERVICE_URL"`
+		Untagged string
+	}
+
+	opts := Options()
+	opts.ArgsMap = map[string]string{
+		"--existing": "Existing",
+	}
+	opts.VarsMap = map[string]string{
+		"EXISTING_ENV": "Existing",
+	}
+
+	s := &settings{}
+	s.reflectTagOverrideArgs(&config{}, &opts)
+
+	wantArgs := map[string]string{
+		"--existing": "Existing",
+		"--name":     "Name",
+		"-c":         "Count",
+	}
+	if !reflect.DeepEqual(opts.ArgsMap, wantArgs) {
+		t.Errorf("settings.reflectTagOverrideArgs() ArgsMap = %v, want %v", opts.ArgsMap, wantArgs)
+	}
+
+	wantVars := map[string]string{
+		"EXISTING_ENV": "Existing",
+		"NAME_ENV":     "Name",
+		"SERVICE_URL":  "URL",
+	}
+	if !reflect.DeepEqual(opts.VarsMap, wantVars) {
+		t.Errorf("settings.reflectTagOverrideArgs() VarsMap = %v, want %v", opts.VarsMap, wantVars)
+	}
+}
+
 func Test_settings_applyArgs(t *testing.T) {
 	type testConfig struct {
 		Name    string
