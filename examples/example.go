@@ -29,17 +29,17 @@ import (
 // with example fields for demonstration purposes
 type config struct {
 	Data struct {
-		Name string `yaml:"name"`
-		Host string `yaml:"host"`
-		Port int    `yaml:"port"`
+		Name string `yaml:"name" arg:"-db"`
+		Host string `yaml:"host" arg:"-h"`
+		Port int    `yaml:"port" arg:"-p"`
 	} `yaml:"data"`
 	Logging struct {
-		Level   string `yaml:"level"`
-		Verbose bool   `yaml:"verbose"`
+		Level   string `yaml:"level" arg:"-l"`
+		Verbose bool   `yaml:"verbose" arg:"-v"`
 	} `yaml:"logging"`
-	Name   string `yaml:"name"`
+	Name   string `yaml:"name" arg:"-n"`
 	Server struct {
-		Address string `yaml:"address"`
+		Address string `yaml:"address" arg:"-a"`
 	} `yaml:"server"`
 	Version string `yaml:"version"`
 	Lists   struct {

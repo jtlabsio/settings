@@ -5,12 +5,14 @@
 This package gathers values (typically used for application settings and configuration) from various sources outside of the application, and layers them together in a single output struct (supplied as an argument) for use by the application. This package supports [12-factor](https://12factor.net) configuration use cases to facilitate cloud-native API and application development.
 
 The package will first attempt to load settings from the following sources in the order arranged below:
+
 1. a base file (in `yaml` or `json` format)
 2. from the default values map (if provided in `ReadOptions`)
 3. from any command line provided override files (if `ArgsFileOverride` switches are defined in `ReadOptions`)
 4. from any environment override files (if `EnvOverride` and `EnvSearchPaths` are provided in `ReadOptions`)
-5. from all command line argument field specific value overrides (if `ArgsMap` is provided in `ReadOptions`)
-6. from all environment variable field specific value overrides (if `VarsMap` is provided in `ReadOptions`)
+5. from command line arguments (auto-mapped from `arg` struct tags)
+6. from environment variables (auto-mapped from `env` struct tags)
+7. from any additional manual mappings you add via `SetArgsMap` / `SetVarsMap`
 
 ## Installation
 
@@ -18,9 +20,9 @@ The package will first attempt to load settings from the following sources in th
 go get -u go.jtlabs.io/settings
 ```
 
-## Usage
+## Usage (tag-first)
 
-The following snippet demonstrates creating `settings.ReadOptions` with instructions that the `settings.Gather` function uses to populate the supplied config struct:
+The preferred way to wire overrides is to tag your config struct with `arg` and `env`. `Gather` will read those tags and automatically map CLI flags and environment variables to fields:
 
 ```go
 package main
@@ -33,36 +35,26 @@ import (
 
 type config struct {
   Data struct {
-    Name string `json:"name"`
-    Host string `json:"host"`
-    Port int    `json:"port"`
-  } `json:"data"`
+    Name string `json:"name" arg:"--data-name" env:"DATA_NAME"`
+    Host string `json:"host" arg:"--data-host" env:"DATA_HOST"`
+    Port int    `json:"port" arg:"--data-port" env:"DATA_PORT"`
+  }
   Logging struct {
-    Level string `json:"level"`
-  } `json:"logging"`
+    Level string `json:"level" env:"LOG_LEVEL"`
+  }
   Server struct {
-    Address string `json:"address"`
-  } `json:"server"`
+    Address string `json:"address" env:"SERVER_ADDRESS"`
+  }
 }
 
 func main() {
   var c config
   options := settings.Options().
     SetBasePath("./defaults.yaml").
-    SetSearchPaths("./", "./config", "./settings").
+    SetEnvOverride("GO_ENV").                 // optional: look for environment-specific files
+    SetEnvSearchPaths("./", "./config").      // optional: where to look for those files
     SetDefaultsMap(map[string]interface{}{
       "Server.Address": ":3080",
-    }).
-    SetArgsMap(map[string]string{
-      "--data-name": "Data.Name",
-      "--data-host": "Data.Host",
-      "--data-port": "Data.Port",
-    }).
-    SetVarsMap(map[string]string{
-      "DATA_NAME":      "Data.Name",
-      "DATA_HOST":      "Data.Host",
-      "DATA_PORT":      "Data.Port",
-      "SERVER_ADDRESS": "Server.Address",
     })
 
   // read in configuration from all sources
@@ -72,7 +64,30 @@ func main() {
 }
 ```
 
+Now you can override with either CLI flags or env vars:
+
+```bash
+LOG_LEVEL=debug go run main.go --data-host=db.internal --data-port=5432
+```
+
+`Gather` will merge, in order: defaults → base file → env override files → CLI args → env vars → any additional maps you add (next section).
+
 For a more verbose example along with execution instructions, see [examples/example.go](examples/example.go).
+
+### Adding manual mappings (optional)
+
+If you want aliases or mappings beyond tags, you can still use `SetArgsMap` / `SetVarsMap` to add or rewrite entries. These are layered on top of the tag-derived maps:
+
+```go
+options := settings.Options().
+  SetBasePath("./defaults.yaml").
+  SetArgsMap(map[string]string{
+    "-h": "Data.Host", // alias for --data-host
+  }).
+  SetVarsMap(map[string]string{
+    "HOST_OVERRIDE": "Data.Host",
+  })
+```
 
 ### ReadOptions
 
@@ -80,16 +95,23 @@ ReadOptions are used to instruct the package where to find override values from 
 
 #### EnvDefault
 
-This function exists so that default environment variable driven overrides, similar to those defined in [settings-lib](https://github.com/brozeph/settings-lib), can be provided easily to the Gather function.
+This helper wires a sensible baseline for environment-based overrides, similar to [settings-lib](https://github.com/brozeph/settings-lib). It:
+
+- adds `GO_ENV` to `EnvOverride` so `Gather` will look for environment-specific files (e.g. `./testing.yaml`, `./settings/testing.json`)
+- sets default search paths to `./`, `./config`, and `./settings`
+
+You can start with `EnvDefault()` and layer on additional options or tags:
 
 ```go
 options := settings.Options().EnvDefault()
 settings.Gather(options, &config)
 ```
 
+If you need a different variable name or paths, call `SetEnvOverride` / `SetEnvSearchPaths` after `EnvDefault()` to override or extend the defaults.
+
 #### SetArg
 
-Similar to [`SetArgsMap`](#SetArgsMap), this can be used to attach command line arguments, individually, to fields for settings.
+Adds a single CLI flag mapping. Useful if you prefer to configure mappings in code rather than struct tags, or if you need to supplement the tag-derived map.
 
 ```go
 options := settings.Options().
@@ -112,7 +134,7 @@ The `first-file.yml` will be read and applied, and then the `second-file.json` w
 
 #### SetArgsMap
 
-The arguments map is used by `Gather` to determine how command line switches can be applied to specific out struct fields.
+The arguments map is used by `Gather` to determine how command line switches can be applied to specific out struct fields. Tag-derived mappings are added first; `SetArgsMap` can add or rewrite entries.
 
 ```go
 options := settings.
@@ -216,7 +238,7 @@ In this scenario, if both `./testing.yml` and `./config.testing.yml` are found, 
 
 #### SetVar
 
-Similar to [`SetVarsMap`](#SetVarMap), this can be used to associate environment variables, individually, to fields for settings.
+Adds a single environment variable mapping. Useful if you prefer to configure mappings in code rather than struct tags, or if you need to supplement the tag-derived map.
 
 ```go
 options := settings.Options().
@@ -226,7 +248,7 @@ settings.Gather(options, &config)
 
 #### SetVarsMap
 
-Similar to the Args map, the Vars map can be used to override individual fields with values defined as environment variables.
+Similar to the Args map, the Vars map can be used to override individual fields with values defined as environment variables. Tag-derived mappings are added first; `SetVarsMap` can add or rewrite entries.
 
 ## Q & A
 
