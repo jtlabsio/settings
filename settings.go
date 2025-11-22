@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -37,7 +37,7 @@ type settings struct {
 // 4. override files (from environment)
 // 5. command line arguments
 // 6. environment variables
-func Gather(opts ReadOptions, out interface{}) error {
+func Gather(opts ReadOptions, out any) error {
 	s := settings{
 		fieldTypeMap: map[string]reflect.Type{},
 		out:          out,
@@ -47,6 +47,9 @@ func Gather(opts ReadOptions, out interface{}) error {
 	if err := s.determineFieldTypes(); err != nil {
 		return err
 	}
+
+	// process arg and env tags on struct
+	s.reflectTagOverrideArgs(out, &opts)
 
 	// read in base path (should be the base config file)
 	if err := s.readBaseSettings(opts.BasePath); err != nil {
@@ -324,6 +327,53 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 	for i := 0; i < fields; i++ {
 		f := field.Type.FieldByIndex([]int{i})
 		s.iterateFields(fieldName, f)
+	}
+}
+
+func (s *settings) reflectTagOverrideArgs(out any, opts *ReadOptions, pFldNm ...string) {
+	// read tag values for each field on out using reflection
+	var ct reflect.Type
+
+	if t, ok := out.(reflect.Type); ok {
+		ct = t
+	} else {
+		ct = reflect.TypeOf(out)
+	}
+
+	// when a pointer, find the type that it is pointing to
+	for ct.Kind() == reflect.Ptr {
+		ct = ct.Elem()
+	}
+
+	// iterate each field on the struct
+	flds := ct.NumField()
+	pfx := strings.Join(pFldNm, ".")
+	for i := 0; i < flds; i++ {
+		fld := ct.FieldByIndex([]int{i})
+
+		// determine field name
+		fldNm := fld.Name
+		if pfx != "" {
+			fldNm = fmt.Sprintf("%s.%s", pfx, fldNm)
+		}
+
+		// recursively handle structs
+		if fld.Type.Kind() == reflect.Struct {
+			s.reflectTagOverrideArgs(fld.Type, opts, fldNm)
+			continue
+		}
+
+		// read "arg" tag
+		arg := fld.Tag.Get("arg")
+		if arg != "" {
+			opts.ArgsMap[arg] = fldNm
+		}
+
+		// read "env" tag
+		env := fld.Tag.Get("env")
+		if env != "" {
+			opts.VarsMap[env] = fldNm
+		}
 	}
 }
 
@@ -699,7 +749,7 @@ func (s *settings) unmarshalFile(path string, out interface{}) error {
 		return err
 	}
 
-	in, err := ioutil.ReadFile(path)
+	in, err := os.ReadFile(path)
 	if err != nil {
 		// unable to read the file
 		return SettingsFileReadError(path, err.Error())
