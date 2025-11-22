@@ -112,8 +112,13 @@ func TestGather(t *testing.T) {
 
 func Test_settings_reflectTagOverrideArgs(t *testing.T) {
 	type config struct {
-		Name     string `arg:"--name" env:"NAME_ENV"`
-		Count    int    `arg:"-c"`
+		Name   string `arg:"--name" env:"NAME_ENV"`
+		Count  int    `arg:"-c"`
+		Nested struct {
+			Count    int    `arg:"--nested-count" env:"NESTED_COUNT_ENV"`
+			Name     string `arg:"--nested-name" env:"NESTED_NAME_ENV"`
+			Untagged string
+		}
 		URL      string `env:"SERVICE_URL"`
 		Untagged string
 	}
@@ -130,18 +135,22 @@ func Test_settings_reflectTagOverrideArgs(t *testing.T) {
 	s.reflectTagOverrideArgs(&config{}, &opts)
 
 	wantArgs := map[string]string{
-		"--existing": "Existing",
-		"--name":     "Name",
-		"-c":         "Count",
+		"--existing":     "Existing",
+		"--name":         "Name",
+		"-c":             "Count",
+		"--nested-count": "Nested.Count",
+		"--nested-name":  "Nested.Name",
 	}
 	if !reflect.DeepEqual(opts.ArgsMap, wantArgs) {
 		t.Errorf("settings.reflectTagOverrideArgs() ArgsMap = %v, want %v", opts.ArgsMap, wantArgs)
 	}
 
 	wantVars := map[string]string{
-		"EXISTING_ENV": "Existing",
-		"NAME_ENV":     "Name",
-		"SERVICE_URL":  "URL",
+		"EXISTING_ENV":     "Existing",
+		"NAME_ENV":         "Name",
+		"SERVICE_URL":      "URL",
+		"NESTED_COUNT_ENV": "Nested.Count",
+		"NESTED_NAME_ENV":  "Nested.Name",
 	}
 	if !reflect.DeepEqual(opts.VarsMap, wantVars) {
 		t.Errorf("settings.reflectTagOverrideArgs() VarsMap = %v, want %v", opts.VarsMap, wantVars)

@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -329,9 +330,15 @@ func (s *settings) iterateFields(parentPrefix string, field reflect.StructField)
 	}
 }
 
-func (s *settings) reflectTagOverrideArgs(out any, opts *ReadOptions, pfx ...string) {
+func (s *settings) reflectTagOverrideArgs(out any, opts *ReadOptions, pFldNm ...string) {
 	// read tag values for each field on out using reflection
-	ct := reflect.TypeOf(out)
+	var ct reflect.Type
+
+	if t, ok := out.(reflect.Type); ok {
+		ct = t
+	} else {
+		ct = reflect.TypeOf(out)
+	}
 
 	// when a pointer, find the type that it is pointing to
 	for ct.Kind() == reflect.Ptr {
@@ -340,12 +347,13 @@ func (s *settings) reflectTagOverrideArgs(out any, opts *ReadOptions, pfx ...str
 
 	// iterate each field on the struct
 	flds := ct.NumField()
+	pfx := strings.Join(pFldNm, ".")
 	for i := 0; i < flds; i++ {
 		fld := ct.FieldByIndex([]int{i})
 
 		// determine field name
 		fldNm := fld.Name
-		if pfx != nil {
+		if pfx != "" {
 			fldNm = fmt.Sprintf("%s.%s", pfx, fldNm)
 		}
 
