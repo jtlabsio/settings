@@ -2,6 +2,7 @@ package settings
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -533,6 +534,34 @@ func Test_settings_applyDefaultsMap(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"should return nil when defaults map is empty",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{},
+				out:          &testConfig{},
+			},
+			args{
+				dm: map[string]interface{}{},
+			},
+			&testConfig{},
+			false,
+		},
+		{
+			"should error when field cannot be set",
+			fields{
+				fieldTypeMap: map[string]reflect.Type{
+					"name": reflect.TypeOf(""),
+				},
+				out: &struct{ name string }{},
+			},
+			args{
+				dm: map[string]interface{}{
+					"name": "secret",
+				},
+			},
+			&struct{ name string }{},
+			true,
+		},
+		{
 			"should apply defaults map overrides to struct",
 			fields{
 				fieldTypeMap: map[string]reflect.Type{
@@ -773,6 +802,13 @@ func Test_settings_cleanArgValue(t *testing.T) {
 			},
 			"value \"value\" value",
 		},
+		{
+			"should return empty string when blank",
+			args{
+				"",
+			},
+			"",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -901,7 +937,8 @@ func Test_settings_readBaseSettings(t *testing.T) {
 		Version string
 	}
 	type args struct {
-		path string
+		path  string
+		mkDir bool
 	}
 	tests := []struct {
 		name         string
@@ -910,6 +947,16 @@ func Test_settings_readBaseSettings(t *testing.T) {
 		wantErr      bool
 		errorMessage string
 	}{
+		{
+			"should return read error when path is a directory",
+			args{
+				path:  "",
+				mkDir: true,
+			},
+			&testConfig{},
+			true,
+			"unable to read settings file",
+		},
 		{
 			"should set fields when unmarshalling",
 			args{
@@ -951,10 +998,22 @@ func Test_settings_readBaseSettings(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			path := tt.args.path
+			cleanup := func() {}
+
+			if tt.args.mkDir {
+				dir := t.TempDir()
+				path = filepath.Join(dir, "config.yaml")
+				if err := os.Mkdir(path, 0o755); err != nil {
+					t.Fatalf("unable to create directory for test: %v", err)
+				}
+			}
+			defer cleanup()
+
 			s := settings{
 				out: &testConfig{},
 			}
-			if err := s.readBaseSettings(tt.args.path); err != nil {
+			if err := s.readBaseSettings(path); err != nil {
 				if !tt.wantErr {
 					t.Errorf("settings.readBaseSettings() error = %v, wantErr %v", err, tt.wantErr)
 				}
@@ -964,6 +1023,43 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			}
 			if !reflect.DeepEqual(s.out, tt.want) {
 				t.Errorf("settings.readBaseSettings() = %v, want %v", s.out, tt.want)
+			}
+		})
+	}
+}
+
+func Test_settings_readOverrideFile(t *testing.T) {
+	type testConfig struct {
+		Name string `yaml:"name"`
+	}
+
+	tests := []struct {
+		name    string
+		path    func(t *testing.T) string
+		wantErr string
+	}{
+		{
+			name: "returns read error when path is a directory",
+			path: func(t *testing.T) string {
+				dir := t.TempDir()
+				path := filepath.Join(dir, "override.yaml")
+				if err := os.Mkdir(path, 0o755); err != nil {
+					t.Fatalf("unable to create directory: %v", err)
+				}
+				return path
+			},
+			wantErr: "unable to read settings file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := settings{
+				out: &testConfig{},
+			}
+
+			if err := s.readOverrideFile(tt.path(t)); err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("settings.readOverrideFile() expected error containing %q, got %v", tt.wantErr, err)
 			}
 		})
 	}
@@ -1312,5 +1408,347 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 		})
 
 		os.Clearenv()
+	}
+}
+
+func Test_settings_applyVars_skipUnset(t *testing.T) {
+	type testConfig struct {
+		Name string
+	}
+
+	s := &settings{
+		fieldTypeMap: map[string]reflect.Type{
+			"Name": reflect.TypeOf(""),
+		},
+		out: &testConfig{},
+	}
+
+	if err := s.applyVars(map[string]string{"MISSING_NAME": "Name"}); err != nil {
+		t.Fatalf("settings.applyVars() unexpected error = %v", err)
+	}
+
+	if s.out.(*testConfig).Name != "" {
+		t.Fatalf("settings.applyVars() expected name to remain empty, got %s", s.out.(*testConfig).Name)
+	}
+}
+
+func Test_settings_setFieldValue_fieldDoesNotExist(t *testing.T) {
+	type testConfig struct {
+		Name string
+	}
+
+	s := &settings{
+		fieldTypeMap: map[string]reflect.Type{
+			"Name": reflect.TypeOf(""),
+		},
+		out: &testConfig{},
+	}
+
+	err := s.setFieldValue("Unknown", "value", "Vars")
+	if err == nil || !strings.Contains(err.Error(), "does not exist") {
+		t.Fatalf("settings.setFieldValue() expected missing field error, got %v", err)
+	}
+}
+
+func Test_settings_setFieldValue_unsettableField(t *testing.T) {
+	type hiddenConfig struct {
+		name string
+	}
+
+	cfg := &hiddenConfig{}
+	s := &settings{
+		fieldTypeMap: map[string]reflect.Type{},
+		out:          cfg,
+	}
+
+	if err := s.determineFieldTypes(); err != nil {
+		t.Fatalf("unexpected error determining fields: %v", err)
+	}
+
+	if err := s.setFieldValue("name", "secret", "Vars"); err == nil || !strings.Contains(err.Error(), "unable to set") {
+		t.Fatalf("settings.setFieldValue() expected unsettable field error, got %v", err)
+	}
+}
+
+func Test_settings_setFieldValue_timeParseError(t *testing.T) {
+	type testConfig struct {
+		Created time.Time
+	}
+
+	s := &settings{
+		fieldTypeMap: map[string]reflect.Type{
+			"Created": reflect.TypeOf(time.Time{}),
+		},
+		out: &testConfig{},
+	}
+
+	err := s.setFieldValue("Created", "not-a-time", "Vars")
+	if err == nil || !strings.Contains(err.Error(), "unable to set") {
+		t.Fatalf("settings.setFieldValue() expected time parse error, got %v", err)
+	}
+}
+
+func Test_settings_setFieldValue_conversionErrors(t *testing.T) {
+	type testConfig struct {
+		Flag    bool
+		Flags   []bool
+		Numbers []int
+		Port    uint
+	}
+
+	cfg := &testConfig{}
+	s := &settings{
+		fieldTypeMap: map[string]reflect.Type{
+			"Flag":    reflect.TypeOf(true),
+			"Flags":   reflect.TypeOf([]bool{}),
+			"Numbers": reflect.TypeOf([]int{}),
+			"Port":    reflect.TypeOf(uint(0)),
+		},
+		out: cfg,
+	}
+
+	if err := s.setFieldValue("Flag", "not-a-bool", "Vars"); err == nil {
+		t.Fatalf("settings.setFieldValue() expected bool parse error")
+	}
+
+	if err := s.setFieldValue("Numbers", "abc,123", "Vars"); err == nil {
+		t.Fatalf("settings.setFieldValue() expected slice parse error")
+	}
+
+	if err := s.setFieldValue("Flags", "truthy,falsey", "Vars"); err == nil {
+		t.Fatalf("settings.setFieldValue() expected bool slice parse error")
+	}
+
+	if err := s.setFieldValue("Port", "abc", "Vars"); err == nil {
+		t.Fatalf("settings.setFieldValue() expected uint parse error")
+	}
+}
+
+func Test_settings_findOutFieldValue(t *testing.T) {
+	type nestedConfig struct {
+		Name string
+	}
+	type testConfig struct {
+		Nested *nestedConfig
+		Count  int
+	}
+
+	cfg := &testConfig{
+		Nested: &nestedConfig{Name: "nested name"},
+		Count:  10,
+	}
+
+	s := &settings{
+		out: cfg,
+	}
+
+	if v := s.findOutFieldValue(""); v.IsValid() {
+		t.Fatalf("settings.findOutFieldValue() expected invalid reflect.Value for empty path")
+	}
+
+	if got := s.findOutFieldValue("Count"); got.Int() != 10 {
+		t.Fatalf("settings.findOutFieldValue() Count = %d, want 10", got.Int())
+	}
+
+	if got := s.findOutFieldValue("Nested.Name"); got.String() != "nested name" {
+		t.Fatalf("settings.findOutFieldValue() Nested.Name = %s, want nested name", got.String())
+	}
+}
+
+func Test_settings_unmarshalFile(t *testing.T) {
+	type testConfig struct {
+		Name string `json:"name" yaml:"name"`
+	}
+
+	s := &settings{}
+	dir := t.TempDir()
+
+	jsonPath := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(jsonPath, []byte(`{"name":"json config"}`), 0600); err != nil {
+		t.Fatalf("unable to setup json config: %v", err)
+	}
+
+	cfg := &testConfig{}
+	if err := s.unmarshalFile(jsonPath, cfg); err != nil {
+		t.Fatalf("settings.unmarshalFile() unexpected error reading json: %v", err)
+	}
+	if cfg.Name != "json config" {
+		t.Fatalf("settings.unmarshalFile() json config Name = %s, want json config", cfg.Name)
+	}
+
+	unreadableDir := filepath.Join(dir, "unreadable.yaml")
+	if err := os.Mkdir(unreadableDir, 0o755); err != nil {
+		t.Fatalf("unable to create unreadable directory: %v", err)
+	}
+
+	if err := s.unmarshalFile(unreadableDir, &testConfig{}); err == nil || !strings.Contains(err.Error(), "unable to read settings file") {
+		t.Fatalf("settings.unmarshalFile() expected read error for directory path, got %v", err)
+	}
+
+	if err := s.unmarshalFile(filepath.Join(dir, "config.toml"), &testConfig{}); err == nil || !strings.Contains(err.Error(), "unrecognized settings file extension") {
+		t.Fatalf("settings.unmarshalFile() expected unsupported file type error, got %v", err)
+	}
+
+	badYAML := filepath.Join(dir, "bad.yaml")
+	if err := os.WriteFile(badYAML, []byte(":- bad"), 0o600); err != nil {
+		t.Fatalf("unable to write bad yaml: %v", err)
+	}
+
+	if err := s.unmarshalFile(badYAML, &testConfig{}); err == nil || !strings.Contains(err.Error(), "unable to parse") {
+		t.Fatalf("settings.unmarshalFile() expected parse error for invalid yaml, got %v", err)
+	}
+}
+
+func TestGather_EndToEnd(t *testing.T) {
+	type testConfig struct {
+		Name    string    `yaml:"name"`
+		Created time.Time `yaml:"created"`
+		Version string    `yaml:"version"`
+		Port    int
+		Tags    []string
+	}
+
+	origArgs := os.Args
+	defer func() {
+		os.Args = origArgs
+		os.Clearenv()
+	}()
+
+	os.Args = []string{
+		"cmd",
+		"--config-file", "./tests/config.simple.yml",
+		"--name", "cli name",
+	}
+
+	os.Setenv("GO_ENV", "pattern")
+	os.Setenv("APP_NAME", "env name")
+	os.Setenv("VERSION", "2.0")
+
+	opts := Options().
+		SetBasePath("./tests/simple.yaml").
+		SetDefaultsMap(map[string]interface{}{
+			"Port": 8080,
+			"Tags": []string{"default"},
+		}).
+		SetArgsFileOverride("--config-file").
+		SetArgsMap(map[string]string{
+			"--name": "Name",
+		}).
+		SetEnvOverride("GO_ENV").
+		SetEnvSearchPaths("./tests").
+		SetEnvSearchPattern("config.%s").
+		SetVar("APP_NAME", "Name").
+		SetVar("VERSION", "Version")
+
+	cfg := &testConfig{}
+	if err := Gather(opts, cfg); err != nil {
+		t.Fatalf("Gather() unexpected error = %v", err)
+	}
+
+	if cfg.Name != "env name" {
+		t.Fatalf("Gather() Name = %s, want env name", cfg.Name)
+	}
+
+	expectedCreated := time.Date(2021, time.February, 16, 0, 0, 0, 0, time.UTC)
+	if !cfg.Created.Equal(expectedCreated) {
+		t.Fatalf("Gather() Created = %v, want %v", cfg.Created, expectedCreated)
+	}
+
+	if cfg.Version != "2.0" {
+		t.Fatalf("Gather() Version = %s, want 2.0", cfg.Version)
+	}
+
+	if cfg.Port != 8080 {
+		t.Fatalf("Gather() Port = %d, want 8080", cfg.Port)
+	}
+
+	if !reflect.DeepEqual(cfg.Tags, []string{"default"}) {
+		t.Fatalf("Gather() Tags = %v, want [default]", cfg.Tags)
+	}
+}
+
+func TestGather_Errors(t *testing.T) {
+	type testConfig struct {
+		Count int
+	}
+
+	tests := []struct {
+		name      string
+		opts      ReadOptions
+		args      []string
+		env       map[string]string
+		wantError string
+	}{
+		{
+			name:      "readBaseSettings error for missing file",
+			opts:      Options().SetBasePath("./does/not/exist.yml"),
+			wantError: "no such file",
+		},
+		{
+			name: "applyDefaultsMap mismatch",
+			opts: Options().SetDefaultsMap(map[string]interface{}{
+				"Count": "not-a-number",
+			}),
+			wantError: "type mismatch",
+		},
+		{
+			name: "searchForArgOverrides error",
+			opts: Options().
+				SetArgsFileOverride("--config").
+				SetArgsMap(map[string]string{"--count": "Count"}),
+			args:      []string{"cmd", "--config", "./tests/broken.json"},
+			wantError: "unable to parse",
+		},
+		{
+			name: "searchForEnvOverrides error",
+			opts: Options().
+				SetEnvOverride("GO_ENV").
+				SetEnvSearchPaths("./tests"),
+			env: map[string]string{
+				"GO_ENV": "broken",
+			},
+			wantError: "unable to parse",
+		},
+		{
+			name: "applyArgs error",
+			opts: Options().
+				SetArgsMap(map[string]string{
+					"--count": "Count",
+				}),
+			args:      []string{"cmd", "--count", "nan"},
+			wantError: "unable to set",
+		},
+		{
+			name: "applyVars error",
+			opts: Options().
+				SetVarsMap(map[string]string{
+					"COUNT": "Count",
+				}),
+			env: map[string]string{
+				"COUNT": "nan",
+			},
+			wantError: "unable to set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			origArgs := os.Args
+			os.Args = tt.args
+			defer func() {
+				os.Args = origArgs
+				os.Clearenv()
+			}()
+
+			for k, v := range tt.env {
+				os.Setenv(k, v)
+			}
+
+			cfg := &testConfig{}
+			err := Gather(tt.opts, cfg)
+			if err == nil || !strings.Contains(err.Error(), tt.wantError) {
+				t.Fatalf("Gather() expected error containing %q, got %v", tt.wantError, err)
+			}
+		})
 	}
 }
