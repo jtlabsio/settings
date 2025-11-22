@@ -1017,10 +1017,6 @@ func Test_settings_readBaseSettings(t *testing.T) {
 				if err := os.Mkdir(restricted, 0o755); err != nil {
 					t.Fatalf("unable to create restricted directory: %v", err)
 				}
-				path = filepath.Join(restricted, "config.yaml")
-				if err := os.WriteFile(path, []byte("name: test"), 0o600); err != nil {
-					t.Fatalf("unable to create restricted file: %v", err)
-				}
 				if err := os.Chmod(restricted, 0o000); err != nil {
 					t.Fatalf("unable to restrict directory: %v", err)
 				}
@@ -1085,10 +1081,6 @@ func Test_settings_readOverrideFile(t *testing.T) {
 				if err := os.Mkdir(restricted, 0o755); err != nil {
 					t.Fatalf("unable to create restricted directory: %v", err)
 				}
-				f := filepath.Join(restricted, "config.yaml")
-				if err := os.WriteFile(f, []byte("name: test"), 0o600); err != nil {
-					t.Fatalf("unable to write restricted file: %v", err)
-				}
 				if err := os.Chmod(restricted, 0o000); err != nil {
 					t.Fatalf("unable to restrict directory: %v", err)
 				}
@@ -1096,7 +1088,7 @@ func Test_settings_readOverrideFile(t *testing.T) {
 					_ = os.Chmod(restricted, 0o755)
 				})
 
-				return f
+				return filepath.Join(restricted, "config.yaml")
 			},
 			wantErr: "unable to read settings file",
 		},
