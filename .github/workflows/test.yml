@@ -7,7 +7,7 @@ jobs:
     container:
       image: golang:1.24
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -16,7 +16,12 @@ jobs:
         run: go install
       
       - name: Test
-        run: go test -race -coverprofile=coverage.txt -covermode=atomic
+        run: go test -race -v -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.out
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
