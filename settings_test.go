@@ -1014,8 +1014,15 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			if tt.args.noPerm {
 				dir := t.TempDir()
 				restricted := filepath.Join(dir, "restricted")
-				if err := os.Mkdir(restricted, 0o000); err != nil {
+				if err := os.Mkdir(restricted, 0o755); err != nil {
 					t.Fatalf("unable to create restricted directory: %v", err)
+				}
+				path = filepath.Join(restricted, "config.yaml")
+				if err := os.WriteFile(path, []byte("name: test"), 0o600); err != nil {
+					t.Fatalf("unable to create restricted file: %v", err)
+				}
+				if err := os.Chmod(restricted, 0o000); err != nil {
+					t.Fatalf("unable to restrict directory: %v", err)
 				}
 				path = filepath.Join(restricted, "config.yaml")
 				cleanup = func() {
@@ -1075,14 +1082,21 @@ func Test_settings_readOverrideFile(t *testing.T) {
 			path: func(t *testing.T) string {
 				dir := t.TempDir()
 				restricted := filepath.Join(dir, "restricted")
-				if err := os.Mkdir(restricted, 0o000); err != nil {
+				if err := os.Mkdir(restricted, 0o755); err != nil {
 					t.Fatalf("unable to create restricted directory: %v", err)
+				}
+				f := filepath.Join(restricted, "config.yaml")
+				if err := os.WriteFile(f, []byte("name: test"), 0o600); err != nil {
+					t.Fatalf("unable to write restricted file: %v", err)
+				}
+				if err := os.Chmod(restricted, 0o000); err != nil {
+					t.Fatalf("unable to restrict directory: %v", err)
 				}
 				t.Cleanup(func() {
 					_ = os.Chmod(restricted, 0o755)
 				})
 
-				return filepath.Join(restricted, "config.yaml")
+				return f
 			},
 			wantErr: "unable to read settings file",
 		},
