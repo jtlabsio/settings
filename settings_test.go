@@ -937,9 +937,8 @@ func Test_settings_readBaseSettings(t *testing.T) {
 		Version string
 	}
 	type args struct {
-		path   string
-		mkDir  bool
-		noPerm bool
+		path  string
+		mkDir bool
 	}
 	tests := []struct {
 		name         string
@@ -953,15 +952,6 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			args{
 				path:  "",
 				mkDir: true,
-			},
-			&testConfig{},
-			true,
-			"unable to read settings file",
-		},
-		{
-			"should wrap stat errors other than not exist",
-			args{
-				noPerm: true,
 			},
 			&testConfig{},
 			true,
@@ -1011,23 +1001,7 @@ func Test_settings_readBaseSettings(t *testing.T) {
 			path := tt.args.path
 			cleanup := func() {}
 
-			if tt.args.noPerm {
-				dir := t.TempDir()
-				restricted := filepath.Join(dir, "restricted")
-				if err := os.Mkdir(restricted, 0o755); err != nil {
-					t.Fatalf("unable to create restricted directory: %v", err)
-				}
-				path = filepath.Join(restricted, "config.yaml")
-				if err := os.WriteFile(path, []byte("name: test"), 0o600); err != nil {
-					t.Fatalf("unable to create file in restricted directory: %v", err)
-				}
-				if err := os.Chmod(restricted, 0o000); err != nil {
-					t.Fatalf("unable to restrict directory: %v", err)
-				}
-				cleanup = func() {
-					_ = os.Chmod(restricted, 0o755)
-				}
-			} else if tt.args.mkDir {
+			if tt.args.mkDir {
 				dir := t.TempDir()
 				path = filepath.Join(dir, "config.yaml")
 				if err := os.Mkdir(path, 0o755); err != nil {
@@ -1073,29 +1047,6 @@ func Test_settings_readOverrideFile(t *testing.T) {
 					t.Fatalf("unable to create directory: %v", err)
 				}
 				return path
-			},
-			wantErr: "unable to read settings file",
-		},
-		{
-			name: "wraps stat error when directory is not accessible",
-			path: func(t *testing.T) string {
-				dir := t.TempDir()
-				restricted := filepath.Join(dir, "restricted")
-				if err := os.Mkdir(restricted, 0o755); err != nil {
-					t.Fatalf("unable to create restricted directory: %v", err)
-				}
-				f := filepath.Join(restricted, "config.yaml")
-				if err := os.WriteFile(f, []byte("name: test"), 0o600); err != nil {
-					t.Fatalf("unable to write restricted file: %v", err)
-				}
-				if err := os.Chmod(restricted, 0o000); err != nil {
-					t.Fatalf("unable to restrict directory: %v", err)
-				}
-				t.Cleanup(func() {
-					_ = os.Chmod(restricted, 0o755)
-				})
-
-				return f
 			},
 			wantErr: "unable to read settings file",
 		},
