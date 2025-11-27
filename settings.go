@@ -366,12 +366,22 @@ func (s *settings) reflectTagOverrideArgs(out any, opts *ReadOptions, pFldNm ...
 		// read "arg" tag
 		arg := fld.Tag.Get("arg")
 		if arg != "" {
+			// ensure args map ready
+			if opts.ArgsMap == nil {
+				opts.ArgsMap = map[string]string{}
+			}
+
 			opts.ArgsMap[arg] = fldNm
 		}
 
 		// read "env" tag
 		env := fld.Tag.Get("env")
 		if env != "" {
+			// ensure we have a vars map ready
+			if opts.VarsMap == nil {
+				opts.VarsMap = map[string]string{}
+			}
+
 			opts.VarsMap[env] = fldNm
 		}
 	}
