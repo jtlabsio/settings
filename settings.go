@@ -482,7 +482,13 @@ func (s *settings) searchForEnvOverrides(vars []string, searchPaths []string, fi
 			spf := fmt.Sprintf("%s%s", sp, ext)
 
 			// continue when the file can't be opened (presumably does not exist)
-			if _, err := os.Stat(spf); err != nil {
+			fi, err := os.Stat(spf)
+			if err != nil {
+				continue
+			}
+
+			// directories should not be treated as candidate settings files
+			if fi.IsDir() {
 				continue
 			}
 
