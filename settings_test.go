@@ -1411,6 +1411,59 @@ func Test_settings_searchForEnvOverrides(t *testing.T) {
 	}
 }
 
+func Test_settings_searchForEnvOverrides_skipsDirectoryWithEnvName(t *testing.T) {
+	type testConfig struct {
+		Name    string `yaml:"name"`
+		Version string `yaml:"version"`
+	}
+
+	dir := t.TempDir()
+	envName := "local-e2e"
+
+	if err := os.Mkdir(filepath.Join(dir, envName), 0700); err != nil {
+		t.Fatalf("unable to create env-name directory: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "settings"), 0700); err != nil {
+		t.Fatalf("unable to create settings directory: %v", err)
+	}
+
+	overridePath := filepath.Join(dir, "settings", envName+".yaml")
+	overrideContent := []byte("name: e2e\nversion: \"2.0\"\n")
+	if err := os.WriteFile(overridePath, overrideContent, 0600); err != nil {
+		t.Fatalf("unable to write override file: %v", err)
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("unable to get cwd: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(wd)
+	})
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("unable to chdir to temp dir: %v", err)
+	}
+
+	t.Setenv("GO_ENV", envName)
+
+	s := &settings{
+		fieldTypeMap: map[string]reflect.Type{
+			"Name":    reflect.TypeOf(""),
+			"Version": reflect.TypeOf(""),
+		},
+		out: &testConfig{},
+	}
+
+	err = s.searchForEnvOverrides([]string{"GO_ENV"}, []string{"./", "./settings"}, "")
+	if err != nil {
+		t.Fatalf("settings.searchForEnvOverrides() unexpected error = %v", err)
+	}
+
+	if !reflect.DeepEqual(s.out, &testConfig{Name: "e2e", Version: "2.0"}) {
+		t.Fatalf("settings.searchForEnvOverrides() = %+v, want %+v", s.out, &testConfig{Name: "e2e", Version: "2.0"})
+	}
+}
+
 func Test_settings_applyVars_skipUnset(t *testing.T) {
 	type testConfig struct {
 		Name string
