@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	commaRE     = regexp.MustCompile(`\,\s?`)
-	dotRE       = regexp.MustCompile(`\.`)
-	settingsExt = []string{".yml", ".yaml", ".json", ""}
-	timeType    = reflect.TypeOf(time.Now())
+	commaRE      = regexp.MustCompile(`\,\s?`)
+	dotRE        = regexp.MustCompile(`\.`)
+	settingsExt  = []string{".yml", ".yaml", ".json", ""}
+	timeType     = reflect.TypeOf(time.Now())
+	durationType = reflect.TypeOf(time.Duration(0))
 )
 
 type settings struct {
@@ -552,7 +553,8 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 		case reflect.Array, reflect.Slice:
 			sVals := commaRE.Split(sVal, -1)
 			ov := s.findOutFieldValue(fieldPath)
-			st := ov.Type().Elem().Kind()
+			elemType := ov.Type().Elem()
+			st := elemType.Kind()
 			pv := reflect.MakeSlice(reflect.Indirect(ov).Type(), len(sVals), cap(sVals))
 
 			for i, sv := range sVals {
@@ -592,6 +594,15 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 					iv := int32(v)
 					pv.Index(i).Set(reflect.ValueOf(iv))
 				case reflect.Int64:
+					if elemType == durationType {
+						dv, err := time.ParseDuration(sv)
+						if err != nil {
+							return SettingsFieldSetError(fieldPath, t.Kind(), err)
+						}
+						pv.Index(i).Set(reflect.ValueOf(dv))
+						continue
+					}
+
 					v, err := strconv.ParseInt(sv, 0, ov.Type().Elem().Bits())
 					if err != nil {
 						return SettingsFieldSetError(fieldPath, t.Kind(), err)
@@ -669,6 +680,15 @@ func (s *settings) setFieldValue(fieldPath string, sVal string, override string)
 			}
 			val = int(pv)
 		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if t == durationType {
+				dv, err := time.ParseDuration(sVal)
+				if err != nil {
+					return SettingsFieldSetError(fieldPath, t.Kind(), err)
+				}
+				val = dv
+				break
+			}
+
 			pv, err := strconv.ParseInt(sVal, 0, t.Bits())
 			if err != nil {
 				return SettingsFieldSetError(fieldPath, t.Kind(), err)
