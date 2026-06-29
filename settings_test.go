@@ -638,9 +638,10 @@ func Test_settings_applyDefaultsMap(t *testing.T) {
 
 func Test_settings_applyVars(t *testing.T) {
 	type testConfig struct {
-		Bool   bool
-		Name   string
-		Nested struct {
+		Bool     bool
+		Duration time.Duration
+		Name     string
+		Nested   struct {
 			Count int
 		}
 	}
@@ -664,6 +665,7 @@ func Test_settings_applyVars(t *testing.T) {
 			fields{
 				fieldTypeMap: map[string]reflect.Type{
 					"Bool":         reflect.TypeOf(true),
+					"Duration":     reflect.TypeOf(time.Duration(0)),
 					"Name":         reflect.TypeOf(""),
 					"Nested.Count": reflect.TypeOf(1),
 				},
@@ -672,19 +674,22 @@ func Test_settings_applyVars(t *testing.T) {
 			args{
 				v: map[string]string{
 					"BOOL":         "Bool",
+					"DURATION":     "Duration",
 					"NAME":         "Name",
 					"NESTED_COUNT": "Nested.Count",
 				},
 			},
 			map[string]string{
 				"BOOL":         "true",
+				"DURATION":     "5s",
 				"NAME":         "testing name assignment",
 				"NESTED_COUNT": "10",
 			},
 			&testConfig{
-				Bool:   true,
-				Name:   "testing name assignment",
-				Nested: struct{ Count int }{10},
+				Bool:     true,
+				Duration: time.Duration(5) * time.Second,
+				Name:     "testing name assignment",
+				Nested:   struct{ Count int }{10},
 			},
 			false,
 		},
